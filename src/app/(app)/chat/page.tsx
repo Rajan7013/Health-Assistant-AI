@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import type { FormEvent } from 'react';
@@ -71,15 +71,17 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
-        <div className='p-4 pt-0'>
-            <MedicalDisclaimer />
-        </div>
+        {messages.length === 0 && (
+            <div className='p-4 pt-0'>
+                <MedicalDisclaimer />
+            </div>
+        )}
       <ScrollArea className="flex-1 p-4 pt-0" ref={scrollAreaRef}>
         <div className="space-y-6">
           {messages.length === 0 && (
-            <div className="space-y-4 text-center text-muted-foreground">
+            <div className="space-y-4 text-center text-muted-foreground mt-8">
               <Bot className="mx-auto h-12 w-12" />
-              <h2 className="text-2xl font-semibold">MediAssistant AI Chat</h2>
+              <h2 className="text-2xl font-semibold">SciPaper AI Assistant</h2>
               <p>Ask me about medicines, diseases, dosages, and more.</p>
             </div>
           )}
