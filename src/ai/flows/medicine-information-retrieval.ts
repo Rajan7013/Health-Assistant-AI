@@ -5,7 +5,7 @@
  *
  * - getMedicineInformation - A function that handles the retrieval of medicine information.
  * - MedicineInformationInput - The input type for the getMedicineInformation function.
- * - MedicineInformationOutput - The return type for the getMedicineInformation function.
+ * - MedicineInformationOutput - The return type for the getMedicineinformation function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -35,7 +35,7 @@ const medicineInformationRetrievalPrompt = ai.definePrompt({
   input: {schema: MedicineInformationInputSchema},
   output: {schema: MedicineInformationOutputSchema},
   prompt: `**IDENTITY:**
-You are SciPaper, a highly intelligent and deeply empathetic health companion. 
+You are HealthMind AI, a highly intelligent and deeply empathetic health companion. 
 Your goal is to provide trustworthy information about medicines using your search tool.
 
 **CORE BEHAVIORS:**
@@ -76,7 +76,7 @@ Your goal is to provide trustworthy information about medicines using your searc
 
 Chat History:
 {{#each chatHistory}}
-  {{#ifEquals role "user"}}User:{{else}}SciPaper:{{/ifEquals}} {{{content}}}
+  {{#ifEquals role "user"}}User:{{else}}HealthMind AI:{{/ifEquals}} {{{content}}}
 {{/each}}
   
 User query: {{{medicineName}}}

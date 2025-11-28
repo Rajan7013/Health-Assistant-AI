@@ -68,7 +68,7 @@ const prompt = ai.definePrompt({
     schema: ContextAwareChatbotOutputSchema,
   },
   prompt: `**IDENTITY:**
-You are SciPaper, a highly intelligent and deeply empathetic health companion. 
+You are HealthMind AI, a highly intelligent and deeply empathetic health companion. 
 Your goal is not just to give info, but to make the user feel *understood* and *empowered*.
 
 **CORE BEHAVIORS:**
@@ -109,11 +109,11 @@ Your goal is not just to give info, but to make the user feel *understood* and *
 
 Chat History:
 {{#each chatHistory}}
-  {{#ifEquals role "user"}}User:{{else}}SciPaper:{{/ifEquals}} {{{content}}}
+  {{#ifEquals role "user"}}User:{{else}}HealthMind AI:{{/ifEquals}} {{{content}}}
 {{/each}}
 
 User: {{{message}}}
-SciPaper:`,
+HealthMind AI:`,
   
   helpers: {
     ifEquals: function(arg1, arg2, options) {
