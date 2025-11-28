@@ -35,7 +35,6 @@ import { signOut } from 'firebase/auth';
 import { useAuth } from '@/firebase';
 import { useRouter, usePathname } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
 
 const navItems = [
   {
@@ -83,8 +82,7 @@ const AppNav = () => (
   </nav>
 );
 
-const DesktopNav = () => {
-    const pathname = usePathname();
+const DesktopNav = ({ pathname }: { pathname: string }) => {
     return (
         <nav className="hidden lg:flex items-center gap-2">
             {navItems.map((item) => (
@@ -110,6 +108,7 @@ export default function AppLayout({
   const { user, loading } = useUser();
   const auth = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -131,7 +130,7 @@ export default function AppLayout({
           
           <div className="hidden lg:flex flex-1 items-center gap-4">
              <div className='mx-auto'>
-                <DesktopNav />
+                <DesktopNav pathname={pathname} />
              </div>
           </div>
           
