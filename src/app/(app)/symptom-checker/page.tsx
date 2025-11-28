@@ -133,7 +133,7 @@ export default function SymptomCheckerPage() {
             placeholder="e.g., I have a persistent dry cough, a slight fever, and feel very tired..."
             rows={5}
             value={symptoms}
-            onChange={(e) => setSymptoms(e.targe.value)}
+            onChange={(e) => setSymptoms(e.target.value)}
             className="mb-4 text-base"
             disabled={status === 'loading'}
           />
