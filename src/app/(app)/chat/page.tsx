@@ -1,20 +1,31 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
-import type { FormEvent } from 'react';
+import { useState, useRef, useEffect, createElement } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { contextAwareChatbot, ContextAwareChatbotInput } from '@/ai/flows/context-aware-chatbot';
-import { Bot, Send, User, Loader2 } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { Logo } from '@/components/icons';
+
+const { Bot, Send, User, Loader2, AlertTriangle } = LucideIcons;
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
+
+const ChatDisclaimer = () => (
+    <div className="flex items-start gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-300">
+        <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+        <p>
+            I am an AI assistant and not a substitute for a real medical professional. Please consult with a doctor for any medical advice.
+        </p>
+    </div>
+)
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -62,42 +73,65 @@ export default function ChatPage() {
     }
   };
 
-  const renderMessageContent = (content: string) => {
-    // Basic markdown for links: [text](url)
-    const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
-    const parts = content.split(linkRegex);
-    
-    return parts.map((part, index) => {
-      if (index % 3 === 1) { // This is the link text
-        const url = parts[index + 1];
+  const renderMessageContent = (content: string): ReactNode[] => {
+    // Regex for bold, links, and icons
+    const regex = /(\*\*.*?\*\*)|(\[.*?\]\(https?:\/\/[^\s)]+\))|(\[ICON:([a-zA-Z]+)\])/g;
+
+    const parts = content.split(regex);
+    let keyIndex = 0;
+
+    return parts.filter(part => part).map((part, index) => {
+      keyIndex++;
+
+      // Handle bold: **text**
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={keyIndex}>{part.substring(2, part.length - 2)}</strong>;
+      }
+
+      // Handle links: [text](url)
+      const linkMatch = part.match(/\[(.*?)\]\((https?:\/\/[^\s)]+)\)/);
+      if (linkMatch) {
+        const text = linkMatch[1];
+        const url = linkMatch[2];
         return (
           <a
-            key={index}
+            key={keyIndex}
             href={url}
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary underline hover:opacity-80"
           >
-            {part}
+            {text}
           </a>
         );
       }
-      if (index % 3 === 2) { // This is the URL, already used
-        return null;
+      
+      // Handle icons: [ICON:Name]
+      const iconMatch = part.match(/\[ICON:([a-zA-Z]+)\]/);
+      if (iconMatch) {
+        const iconName = iconMatch[1] as keyof typeof LucideIcons;
+        const IconComponent = LucideIcons[iconName];
+        if (IconComponent) {
+          return createElement(IconComponent, { key: keyIndex, className: 'inline-block h-4 w-4 mx-1' });
+        }
       }
-      return part; // This is regular text
+
+      // Handle regular text
+      return <span key={keyIndex}>{part}</span>;
     });
   }
+
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
         <div className="space-y-6">
           {messages.length === 0 && (
-            <div className="text-center text-muted-foreground">
-              <Bot className="mx-auto h-12 w-12 mb-4" />
+            <div className="space-y-6 text-center text-muted-foreground">
+              <Bot className="mx-auto h-12 w-12" />
               <h2 className="text-2xl font-semibold">MediAssistant AI Chat</h2>
               <p>Ask me about medicines, diseases, dosages, and more.</p>
+              <ChatDisclaimer />
             </div>
           )}
           {messages.map((message, index) => (
@@ -143,7 +177,7 @@ export default function ChatPage() {
               </Avatar>
               <div className="max-w-md rounded-lg p-3 text-sm shadow-sm bg-card flex items-center">
                  <Loader2 className="h-4 w-4 animate-spin" />
-                 <span className="ml-2 animate-caret-blink">_</span>
+                 <span className="ml-2 animate-pulse">...</span>
               </div>
             </div>
           )}
