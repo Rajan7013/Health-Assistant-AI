@@ -20,10 +20,22 @@ export function useUser() {
       setUser(user);
       setLoading(false);
 
-      if (user && isAuthRoute(pathname)) {
-        router.replace('/dashboard');
-      } else if (!user && !isAuthRoute(pathname)) {
-        router.replace('/login');
+      const onAuthRoute = isAuthRoute(pathname);
+
+      // We only want to navigate if the user's status is mismatched with the route
+      // This prevents redirects during the initial server render and avoids hydration errors
+      if (typeof window !== 'undefined') { // Ensure this only runs on the client
+        if (user) {
+          // If user is logged in, but on an auth route, redirect to dashboard
+          if (onAuthRoute) {
+            router.replace('/dashboard');
+          }
+        } else {
+          // If user is not logged in, and not on an auth route, redirect to login
+          if (!onAuthRoute) {
+            router.replace('/login');
+          }
+        }
       }
     });
 
