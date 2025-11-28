@@ -79,6 +79,11 @@ export default function SchedulePage() {
         description: `${values.medicineName} has been added to your schedule.`,
     });
     form.reset();
+    // Re-set default values for controlled components that need it
+    form.setValue("time", "09:00");
+    form.setValue("frequency", "daily");
+    form.setValue("sound", "default");
+    form.setValue("startDate", undefined);
   }
 
   function deleteSchedule(id: number) {
@@ -271,5 +276,5 @@ export default function SchedulePage() {
             </div>
         </div>
     </div>
-  )
+  );
 }
