@@ -13,8 +13,8 @@ import {z} from 'genkit';
 
 const ContextAwareChatbotInputSchema = z.object({
   message: z.string().describe('The user message.'),
-  chatHistory: z.array(z.object({ // Changed messages to chatHistory
-    role: z.enum(['user', 'assistant']), // Use the terms 'user' and 'assistant'
+  chatHistory: z.array(z.object({ 
+    role: z.enum(['user', 'assistant']),
     content: z.string(),
   })).optional().describe('The chat history.'),
 });
@@ -40,13 +40,13 @@ const prompt = ai.definePrompt({
     schema: ContextAwareChatbotOutputSchema,
   },
   prompt: `You are a helpful AI health assistant named MediAssistant AI. Your job is to provide information about medicines, diseases, dosages, and usage periods based on user input. Remember the context of the conversation to provide the most accurate information. Provide links to the source websites where available.\n\nChat History:\n{{#each chatHistory}}
-  {{#ifEquals role \"user\"}}User:{{else}}MediAssistant AI:{{/ifEquals}} {{{content}}}\n{{/each}}
+  {{#ifEquals role "user"}}User:{{else}}MediAssistant AI:{{/ifEquals}} {{{content}}}\n{{/each}}
 \nUser: {{{message}}}\nMediAssistant AI: `,
-  // Added a Handlebars helper to compare strings
+  
   helpers: {
     ifEquals: function(arg1, arg2, options) {
       // @ts-expect-error
-      return (arg1 == arg2) ? options.fn(this) : options.inverse(this); // Fixed comparison
+      return (arg1 == arg2) ? options.fn(this) : options.inverse(this);
     }
   },
 });
@@ -64,4 +64,3 @@ const contextAwareChatbotFlow = ai.defineFlow(
     };
   }
 );
-
