@@ -10,16 +10,81 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
-import { Loader2, AlertCircle, FileText, Shield, HeartPulse, HelpCircle, UserRoundCheck } from 'lucide-react';
+import { Loader2, AlertCircle, Sparkles, Calendar, ShieldCheck, Activity } from 'lucide-react';
 import { explainSymptoms, SymptomExplanationOutput } from '@/ai/flows/ai-symptom-explanation';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
+
+
+const SymptomReport = ({ report }: { report: SymptomExplanationOutput }) => {
+    return (
+        <Card className="mt-8 shadow-xl border-t-4" style={{borderTopColor: report.urgency_color}}>
+          <CardHeader>
+            <div className="flex justify-between items-start">
+                <div>
+                    <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Potential Condition</p>
+                    <CardTitle className="text-3xl font-bold font-headline">{report.primary_condition}</CardTitle>
+                </div>
+                <Badge className="text-sm" style={{ backgroundColor: report.urgency_color, color: '#fff' }}>
+                    {report.severity_level}
+                </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div>
+                <Label className="text-sm font-medium text-muted-foreground">AI Match Probability</Label>
+                <div className="flex items-center gap-4 mt-2">
+                    <Progress value={report.confidence_score} className="h-2" />
+                    <span className="font-bold text-primary text-lg">{report.confidence_score}%</span>
+                </div>
+            </div>
+
+            <Separator />
+            
+            <div>
+                <h3 className="text-lg font-semibold mb-3">Possible Causes</h3>
+                <div className="flex flex-wrap gap-2">
+                    {report.root_causes.map((cause, index) => (
+                        <Badge key={index} variant="secondary" className="font-normal">{cause}</Badge>
+                    ))}
+                </div>
+            </div>
+
+            <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
+                <h3 className="text-lg font-semibold mb-4">Action Plan</h3>
+                <div className="space-y-4">
+                     <div className="flex items-start gap-3">
+                        <Sparkles className="h-5 w-5 mt-1 text-primary shrink-0" />
+                        <div>
+                            <p className="font-semibold">Immediate Relief</p>
+                            <p className="text-sm text-muted-foreground">{report.action_plan.immediate}</p>
+                        </div>
+                    </div>
+                     <div className="flex items-start gap-3">
+                        <Calendar className="h-5 w-5 mt-1 text-primary shrink-0" />
+                        <div>
+                            <p className="font-semibold">Long-Term Prevention</p>
+                            <p className="text-sm text-muted-foreground">{report.action_plan.long_term}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+          </CardContent>
+          <CardFooter className="bg-muted/50 p-4 rounded-b-lg">
+             <div className="flex items-center gap-3 w-full">
+                <ShieldCheck className="h-6 w-6 text-muted-foreground"/>
+                <div>
+                    <p className="font-semibold">Recommendation</p>
+                    <p className="text-sm font-bold">{report.triage_advice}</p>
+                </div>
+             </div>
+          </CardFooter>
+        </Card>
+    )
+}
 
 export default function SymptomCheckerPage() {
   const [symptoms, setSymptoms] = useState('');
@@ -34,76 +99,31 @@ export default function SymptomCheckerPage() {
 
     try {
       const response = await explainSymptoms({ symptoms });
-
-      // Simulate a slightly longer response time for better UX
-      setTimeout(() => {
-        setResult(response);
-        setStatus('success');
-      }, 500);
-
+      setResult(response);
+      setStatus('success');
     } catch (error) {
       console.error('Error explaining symptoms:', error);
       setStatus('error');
     }
   };
 
-  const parseExplanation = (explanation: string) => {
-    const sections: { [key: string]: string } = {};
-    const regex = /\*\*(.*?)\*\*:/g;
-    let match;
-    let lastIndex = 0;
-    let lastTitle = 'introduction';
-
-    // Initial text before the first heading
-    const firstMatch = regex.exec(explanation);
-    if(firstMatch && firstMatch.index > 0) {
-        sections['introduction'] = explanation.substring(0, firstMatch.index).trim();
-    }
-    regex.lastIndex = 0; // Reset regex
-
-    while ((match = regex.exec(explanation)) !== null) {
-      if (lastIndex !== 0) {
-        sections[lastTitle] = explanation.substring(lastIndex, match.index).trim();
-      }
-      lastTitle = match[1].trim().toLowerCase().replace(/\s+/g, '_');
-      lastIndex = match.index + match[0].length;
-    }
-
-    if (lastIndex > 0) {
-      sections[lastTitle] = explanation.substring(lastIndex).trim();
-    }
-    
-    if (Object.keys(sections).length === 0) {
-        return {introduction: explanation};
-    }
-
-    return sections;
-  };
-
-  const sections = result ? parseExplanation(result.explanation) : {};
-
-  const sectionConfig = [
-    { key: 'possible_causes', title: 'Possible Causes', icon: HelpCircle },
-    { key: 'control_measures', title: 'Control Measures', icon: Shield },
-    { key: 'types', title: 'Types', icon: FileText },
-    { key: 'examples', title: 'Examples', icon: FileText },
-    { key: 'when_to_contact_doctors', title: 'When to Contact Doctors', icon: UserRoundCheck },
-  ];
-
   return (
-    <div className="container mx-auto max-w-4xl py-8">
-      <h1 className="font-headline text-4xl font-bold text-center mb-2">
-        AI Symptom Checker
-      </h1>
-      <p className="text-muted-foreground text-center mb-8">
-        Describe your symptoms, and our AI will provide potential insights. This is not a substitute for professional medical advice.
-      </p>
+    <div className="container mx-auto max-w-2xl py-8">
+      <div className="text-center">
+        <Activity className="mx-auto h-12 w-12 text-primary" />
+        <h1 className="font-headline text-4xl font-bold text-center mt-4 mb-2">
+            AI Symptom Analyzer
+        </h1>
+        <p className="text-muted-foreground text-center mb-8 max-w-md mx-auto">
+            Describe your symptoms to generate a diagnostic report. This is not a substitute for professional medical advice.
+        </p>
+      </div>
 
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle>Describe Your Symptoms</CardTitle>
+          <CardTitle>Enter Your Symptoms</CardTitle>
           <CardDescription>
-            Please provide a detailed description of how you are feeling.
+            Provide a detailed description of how you are feeling to generate your report.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -112,13 +132,14 @@ export default function SymptomCheckerPage() {
             rows={5}
             value={symptoms}
             onChange={(e) => setSymptoms(e.target.value)}
-            className="mb-4"
+            className="mb-4 text-base"
             disabled={status === 'loading'}
           />
           <Button
             onClick={handleSubmit}
             disabled={status === 'loading' || !symptoms.trim()}
             className="w-full"
+            size="lg"
           >
             {status === 'loading' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Analyze Symptoms
@@ -127,63 +148,27 @@ export default function SymptomCheckerPage() {
       </Card>
 
       {status === 'loading' && (
-        <div className="text-center mt-8">
+        <div className="text-center mt-12">
           <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-          <p className="mt-2 text-muted-foreground">AI is analyzing your symptoms...</p>
+          <p className="mt-4 text-muted-foreground font-medium">AI is analyzing your symptoms and generating a report...</p>
+          <p className="text-sm text-muted-foreground">This may take a moment.</p>
         </div>
       )}
 
       {status === 'error' && (
          <Card className="mt-8 border-destructive bg-destructive/10">
-            <CardHeader className="flex-row items-center gap-3">
+            <CardHeader className="flex-row items-center gap-3 space-y-0">
                  <AlertCircle className="h-6 w-6 text-destructive" />
                 <CardTitle className="text-destructive">An Error Occurred</CardTitle>
             </CardHeader>
             <CardContent>
-                <p>We're sorry, but we couldn't process your request at this time. Please try again later.</p>
+                <p className="text-destructive/90">We're sorry, but the AI couldn't process your request at this time. This can happen with complex symptoms. Please try rephrasing or check back later.</p>
             </CardContent>
          </Card>
       )}
 
       {status === 'success' && result && (
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-                <HeartPulse className="h-6 w-6 text-primary" />
-                Symptom Analysis Report
-            </CardTitle>
-            <CardDescription>
-              Based on the symptoms you provided, here is a general overview.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {sections.introduction && <p className="mb-6">{sections.introduction}</p>}
-
-            <Accordion type="multiple" className="w-full" defaultValue={sectionConfig.map(s => s.key)}>
-              {sectionConfig.map(section =>
-                sections[section.key] ? (
-                  <AccordionItem key={section.key} value={section.key}>
-                    <AccordionTrigger className="text-lg font-semibold">
-                      <div className="flex items-center gap-2">
-                        <section.icon className="h-5 w-5" />
-                        {section.title}
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="prose prose-sm dark:prose-invert max-w-none">
-                      <p>{sections[section.key]}</p>
-                    </AccordionContent>
-                  </AccordionItem>
-                ) : null
-              )}
-            </Accordion>
-             <div className="mt-6 border-l-4 border-yellow-500 bg-yellow-500/10 p-4 rounded-r-lg">
-                <h4 className="font-bold text-yellow-800 dark:text-yellow-300">Disclaimer</h4>
-                <p className="text-sm text-yellow-700 dark:text-yellow-200">
-                    This information is generated by AI and is for informational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.
-                </p>
-            </div>
-          </CardContent>
-        </Card>
+        <SymptomReport report={result} />
       )}
     </div>
   );
