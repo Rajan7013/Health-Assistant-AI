@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon, Bell, Pill, PlusCircle, Trash2 } from "lucide-react"
+import { CalendarIcon, Bell, Pill, PlusCircle, Trash2, CalendarClock } from "lucide-react"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
     Select,
@@ -220,7 +220,7 @@ export default function SchedulePage() {
                                         <FormControl>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select an alarm tone" />
-                                        </Trigger>
+                                        </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
                                         <SelectItem value="default">Default</SelectItem>
