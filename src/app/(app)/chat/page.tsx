@@ -12,7 +12,7 @@ import { contextAwareChatbot, ContextAwareChatbotInput } from '@/ai/flows/contex
 import { Logo } from '@/components/icons';
 import { Bot, Send, User, Loader2 } from 'lucide-react';
 
-type MessageIntent = 'MEDICINE' | 'SYMPTOM' | 'GENERAL';
+type MessageIntent = 'MEDICINE' | 'SYMPTOM' | 'GENERAL' | 'EMERGENCY';
 
 interface Message {
   id: string;
@@ -25,27 +25,29 @@ const SmartChips = ({ intent, onSelect }: { intent: MessageIntent, onSelect: (te
   let chips: string[] = [];
   
   if (intent === 'MEDICINE') {
-    chips = ["💊 How to take it?", "⚠️ Any side effects?", "🏠 Home alternatives?"];
+    chips = ["💊 How to take it?", "⚠️ Any side effects?", "🏠 Natural alternative?"];
   } else if (intent === 'SYMPTOM') {
-    chips = ["🥣 What should I eat?", "🛌 How much rest is needed?", "🩺 When should I see a doctor?"];
+    chips = ["🥣 What should I eat?", "🛌 How many days to rest?", "🩺 Is this serious?"];
+  } else if (intent === 'EMERGENCY') {
+    chips = ["📞 Call Ambulance", "🏥 Find Hospital"];
   } else {
-    chips = ["Explain this more simply", "Is this condition serious?"];
+    chips = ["Tell me more", "Explain simply"];
   }
 
-  // Don't render if there are no chips to show
-  if (!chips.length) return null;
-
   return (
-    <div className="flex flex-row flex-wrap gap-2 mt-3 -ml-1">
-      {chips.map((chip, index) => (
-        <button 
-            key={index} 
-            onClick={() => onSelect(chip)}
-            className="px-4 py-2 text-sm font-semibold text-primary bg-primary/10 border border-primary/20 rounded-full hover:bg-primary/20 transition-colors duration-200"
-        >
-          {chip}
-        </button>
-      ))}
+    <div className="mt-3 ml-1 max-w-[85%]">
+        <p className="text-xs text-muted-foreground font-medium mb-2">Suggested Questions:</p>
+        <div className="flex flex-row flex-wrap gap-2">
+            {chips.map((chip, index) => (
+                <button 
+                    key={index} 
+                    onClick={() => onSelect(chip)}
+                    className="px-3 py-1.5 text-xs font-semibold text-primary bg-white border border-primary rounded-full hover:bg-primary/10 transition-all duration-200 shadow-sm hover:shadow-md"
+                >
+                {chip}
+                </button>
+            ))}
+        </div>
     </div>
   );
 };
@@ -71,17 +73,20 @@ export default function ChatPage() {
       });
     }
   }, [messages]);
-
+  
   const handleSendMessage = useCallback(async (messageContent: string) => {
     if (!messageContent.trim() || isLoading) return;
-
+  
     const userMessage: Message = { id: Date.now().toString(), role: 'user', content: messageContent };
     setMessages((prev) => [...prev, userMessage]);
+    
+    // Clear the main input if we're sending its content
     if (messageContent === input) {
         setInput('');
     }
+    
     setIsLoading(true);
-
+  
     try {
       const chatHistory = messages.map(msg => ({ role: msg.role, content: msg.content }));
       
@@ -89,7 +94,7 @@ export default function ChatPage() {
         message: messageContent,
         chatHistory: chatHistory,
       };
-
+  
       const result = await contextAwareChatbot(payload);
       
       const assistantMessage: Message = { 
@@ -97,9 +102,9 @@ export default function ChatPage() {
         role: 'assistant', 
         content: result.response,
         intent: result.intent,
-    };
+      };
       setMessages((prev) => [...prev, assistantMessage]);
-
+  
     } catch (error) {
       console.error('Error with chatbot:', error);
       const errorMessage: Message = { id: 'error-' + Date.now(), role: 'assistant', content: "Sorry, I'm having trouble connecting. Please try again later." };
@@ -108,7 +113,7 @@ export default function ChatPage() {
       setIsLoading(false);
     }
   }, [input, isLoading, messages]);
-
+  
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -116,6 +121,7 @@ export default function ChatPage() {
   };
   
   const handleChipSelect = (chipText: string) => {
+    // We don't set the input, just send the message directly
     handleSendMessage(chipText);
   };
 
@@ -168,8 +174,8 @@ export default function ChatPage() {
                     {message.content}
                     </ReactMarkdown>
                 </article>
-                {message.role === 'assistant' && message.intent && index === messages.length - 1 && !isLoading && (
-                    <SmartChips intent={message.intent} onSelect={handleChipSelect} />
+                {message.role === 'assistant' && index === messages.length - 1 && !isLoading && (
+                    <SmartChips intent={message.intent || 'GENERAL'} onSelect={handleChipSelect} />
                 )}
               </div>
               {message.role === 'user' && (
@@ -212,3 +218,5 @@ export default function ChatPage() {
     </div>
   );
 }
+
+    
