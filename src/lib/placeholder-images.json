@@ -1,3 +1,64 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero",
+      "description": "AI doctor examining a digital interface",
+      "imageUrl": "https://images.unsplash.com/photo-1659353888352-5dbb14b80eca?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxBSSUyMGRvY3RvcnxlbnwwfHx8fDE3NjQzNTA0Njh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "AI doctor"
+    },
+    {
+      "id": "symptom-checker",
+      "description": "A person thinking about their symptoms",
+      "imageUrl": "https://images.unsplash.com/photo-1585559604908-0cb329093f50?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxzeW1wdG9tcyUyMHBlcnNvbnxlbnwwfHx8fDE3NjQzNTA0Njh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "symptoms person"
+    },
+    {
+      "id": "ai-chat",
+      "description": "A chatbot interface on a smartphone",
+      "imageUrl": "https://images.unsplash.com/photo-1757906574561-aaad966c788d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjaGF0JTIwcGhvbmV8ZW58MHx8fHwxNzY0MzUwNDY5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "chat phone"
+    },
+    {
+      "id": "medicine-schedule",
+      "description": "A calendar with pills on it",
+      "imageUrl": "https://images.unsplash.com/photo-1641561421206-20f6d46a4ae0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjYWxlbmRhciUyMHBpbGxzfGVufDB8fHx8MTc2NDM1MDQ2OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "calendar pills"
+    },
+    {
+      "id": "disease-library",
+      "description": "A collection of medical books",
+      "imageUrl": "https://images.unsplash.com/photo-1723310936625-bc0e76a05189?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxtZWRpY2FsJTIwYm9va3N8ZW58MHx8fHwxNzY0MzUwNDY4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "medical books"
+    },
+    {
+      "id": "flu",
+      "description": "A person with the flu",
+      "imageUrl": "https://images.unsplash.com/photo-1606619523819-8792169617e8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxmbHUlMjBzaWNrfGVufDB8fHx8MTc2NDM1MDQ2OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "flu sick"
+    },
+    {
+      "id": "diabetes",
+      "description": "Blood glucose monitoring",
+      "imageUrl": "https://images.unsplash.com/photo-1684157127180-f7ffd7b67db9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxnbHVjb3NlJTIwbWV0ZXJ8ZW58MHx8fHwxNzY0MzUwNDY5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "glucose meter"
+    },
+    {
+      "id": "hypertension",
+      "description": "A blood pressure cuff",
+      "imageUrl": "https://images.unsplash.com/photo-1631815587646-b85a1bb027e1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxibG9vZCUyMHByZXNzdXJlfGVufDB8fHx8MTc2NDI5MTk0Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "blood pressure"
+    },
+    {
+      "id": "asthma",
+      "description": "An inhaler for asthma",
+      "imageUrl": "https://images.unsplash.com/photo-1733336911208-139961cfae1c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxhc3RobWElMjBpbmhhbGVyfGVufDB8fHx8MTc2NDIzNTY3OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "asthma inhaler"
+    },
+    {
+      "id": "login-visual",
+      "description": "Abstract medical background",
+      "imageUrl": "https://images.unsplash.com/photo-1707216171962-9f1514c0bda6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxtZWRpY2FsJTIwYWJzdHJhY3R8ZW58MHx8fHwxNzY0MzUwNDY5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "medical abstract"
+    }
+  ]
 }
