@@ -50,7 +50,7 @@ const medicineInformationRetrievalPrompt = ai.definePrompt({
   
   User query: {{{medicineName}}}
   `,
-   tools: [googleAI.googleSearch()],
+   tools: [googleAI.googleSearch],
    helpers: {
     ifEquals: function(arg1, arg2, options) {
       // @ts-expect-error
