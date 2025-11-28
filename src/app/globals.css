@@ -71,30 +71,34 @@
 @layer components {
     .prose h1 {
         @apply text-2xl font-bold mb-3;
-        color: hsl(var(--primary));
+        color: #007AFF;
     }
     .prose h2 {
-        @apply text-xl font-semibold mt-4 mb-2;
-        color: hsl(var(--foreground));
+        @apply text-lg font-semibold mt-4 mb-2;
+        color: #000000;
+    }
+    .dark .prose h2 {
+        color: #FFFFFF;
     }
     .prose strong {
         @apply font-bold;
-        color: hsl(var(--foreground));
+        color: #007AFF;
     }
     .prose p {
-        @apply text-base mb-3 leading-relaxed;
-        color: hsl(var(--muted-foreground));
+        @apply text-[17px] mb-3 leading-7;
+        color: #333333;
+    }
+    .dark .prose p {
+        color: #E2E8F0;
     }
     .prose ul {
         @apply list-disc list-outside pl-5;
     }
     .prose li {
-        @apply mb-1.5;
+        @apply mb-1.5 ml-[10px];
     }
     .prose blockquote {
-        @apply bg-blue-500/10 border-l-4 pl-4 py-2 my-2 italic;
-        border-color: hsl(var(--primary));
-        color: hsl(var(--foreground) / 0.9);
+        @apply bg-[#F0F9FF] border-l-4 border-[#007AFF] pl-4 py-2 my-2 italic;
     }
     .dark .prose blockquote {
         background-color: hsl(var(--primary) / 0.1);
