@@ -81,8 +81,8 @@ export default function ChatPage() {
           {messages.length === 0 && (
             <div className="space-y-4 text-center text-muted-foreground mt-8">
               <Bot className="mx-auto h-12 w-12" />
-              <h2 className="text-2xl font-semibold">SciPaper AI Assistant</h2>
-              <p>Ask me about medicines, diseases, dosages, and more.</p>
+              <h2 className="text-2xl font-semibold">HealthMind AI</h2>
+              <p>Your personal AI health assistant. Ask me about medicines, diseases, and more.</p>
             </div>
           )}
           {messages.map((message, index) => (
