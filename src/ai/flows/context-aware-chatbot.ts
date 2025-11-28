@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { getMedicineInformation } from './medicine-information-retrieval';
 
 const ContextAwareChatbotInputSchema = z.object({
   message: z.string().describe('The user message.'),
@@ -27,7 +28,34 @@ const ContextAwareChatbotOutputSchema = z.object({
 
 export type ContextAwareChatbotOutput = z.infer<typeof ContextAwareChatbotOutputSchema>;
 
+const shouldRouteToMedicineSearch = ai.definePrompt({
+    name: 'shouldRouteToMedicineSearchPrompt',
+    input: { schema: z.object({ message: z.string(), chatHistory: z.any().optional() }) },
+    output: { schema: z.object({ shouldRoute: z.boolean(), medicineName: z.string().optional() }) },
+    prompt: `You are an expert at routing user queries. Determine if the following user message is asking for information about a specific medicine.
+
+    If the user is asking about a medicine, set shouldRoute to true and extract the medicine name.
+    
+    Chat History:
+    {{#each chatHistory}}
+        User: {{{this.content}}}
+    {{/each}}
+
+    User message: {{{message}}}
+    `,
+});
+
+
 export async function contextAwareChatbot(input: ContextAwareChatbotInput): Promise<ContextAwareChatbotOutput> {
+    const { output } = await shouldRouteToMedicineSearch(input);
+    
+    if (output?.shouldRoute && output.medicineName) {
+        return getMedicineInformation({
+            medicineName: output.medicineName,
+            chatHistory: input.chatHistory,
+        });
+    }
+
   return contextAwareChatbotFlow(input);
 }
 
@@ -39,9 +67,9 @@ const prompt = ai.definePrompt({
   output: {
     schema: ContextAwareChatbotOutputSchema,
   },
-  prompt: `You are a helpful AI health assistant named MediAssistant AI. Your job is to provide information about medicines, diseases, dosages, and usage periods based on user input. Remember the context of the conversation to provide the most accurate information. Provide links to the source websites where available.\n\nChat History:\n{{#each chatHistory}}
-  {{#ifEquals role "user"}}User:{{else}}MediAssistant AI:{{/ifEquals}} {{{content}}}\n{{/each}}
-\nUser: {{{message}}}\nMediAssistant AI: `,
+  prompt: `You are a helpful AI health assistant named HealthMind AI. Your job is to provide information about medicines, diseases, dosages, and usage periods based on user input. Remember the context of the conversation to provide the most accurate information. Provide links to the source websites where available.\n\nChat History:\n{{#each chatHistory}}
+  {{#ifEquals role "user"}}User:{{else}}HealthMind AI:{{/ifEquals}} {{{content}}}\n{{/each}}
+\nUser: {{{message}}}\nHealthMind AI: `,
   
   helpers: {
     ifEquals: function(arg1, arg2, options) {

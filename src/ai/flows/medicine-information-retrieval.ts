@@ -13,7 +13,10 @@ import {z} from 'genkit';
 
 const MedicineInformationInputSchema = z.object({
   medicineName: z.string().describe('The name of the medicine to search for.'),
-  conversationHistory: z.string().optional().describe('Previous conversation history.'),
+  chatHistory: z.array(z.object({ 
+    role: z.enum(['user', 'assistant']),
+    content: z.string(),
+  })).optional().describe('Previous conversation history.'),
 });
 export type MedicineInformationInput = z.infer<typeof MedicineInformationInputSchema>;
 
@@ -30,15 +33,29 @@ const medicineInformationRetrievalPrompt = ai.definePrompt({
   name: 'medicineInformationRetrievalPrompt',
   input: {schema: MedicineInformationInputSchema},
   output: {schema: MedicineInformationOutputSchema},
-  prompt: `You are a helpful AI assistant that retrieves information about medicines from various medical websites.
-  The user will provide a medicine name, and you should search for information about the medicine on the internet, including dosages, side effects, and precautions.
-  Provide a conversational response with the information you find, and include clickable links to the source websites so the user can verify the information.
-  Remember the chat context and intent to provide a more relevant answer.
+  prompt: `You are a helpful AI health assistant named MediAssistant AI. Your job is to provide information about medicines based on user input.
 
-  Previous conversation history: {{{conversationHistory}}}
-  Medicine name: {{{medicineName}}}
-  Response:
+  When a user asks about a specific medicine, you must use the provided search tool to find information about it on the internet.
+  
+  Your response should be conversational and include details about the medicine's uses, dosage, and side effects.
+  
+  Most importantly, you must include clickable markdown links to the source websites where you found the information. This is critical for user trust and verification.
+  
+  Remember the context of the conversation to provide the most accurate information.
+
+  Chat History:
+  {{#each chatHistory}}
+    {{#ifEquals role "user"}}User:{{else}}MediAssistant AI:{{/ifEquals}} {{{content}}}\n{{/each}}
+  
+  User query: {{{medicineName}}}
   `,
+   tools: [ai.tool.googleSearch()],
+   helpers: {
+    ifEquals: function(arg1, arg2, options) {
+      // @ts-expect-error
+      return (arg1 == arg2) ? options.fn(this) : options.inverse(this);
+    }
+  },
 });
 
 const medicineInformationRetrievalFlow = ai.defineFlow(
