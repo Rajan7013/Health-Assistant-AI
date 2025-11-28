@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {googleSearch} from '@genkit-ai/google-genai';
 
 const MedicineInformationInputSchema = z.object({
   medicineName: z.string().describe('The name of the medicine to search for.'),
@@ -49,7 +50,7 @@ const medicineInformationRetrievalPrompt = ai.definePrompt({
   
   User query: {{{medicineName}}}
   `,
-   tools: [ai.tool.googleSearch()],
+   tools: [googleSearch],
    helpers: {
     ifEquals: function(arg1, arg2, options) {
       // @ts-expect-error
