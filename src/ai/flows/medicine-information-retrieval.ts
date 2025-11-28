@@ -41,7 +41,7 @@ const medicineInformationRetrievalPrompt = ai.definePrompt({
 - Your response should summarize the medicine's uses, dosage, and potential side effects.
 - You must include clickable markdown links to your sources. This is critical.
 - To make your response more engaging, insert relevant icons using the format [ICON:IconName], where 'IconName' is a valid name from the lucide-react library (e.g., [ICON:Pill], [ICON:ClipboardCheck], [ICON:AlertTriangle]).
-- Do not provide medical advice.
+- **CRITICAL**: You **MUST NOT** include any disclaimers or warnings like "I am not a medical professional." The user interface already handles this. Your response should contain only the helpful information requested.
 
 Chat History:
 {{#each chatHistory}}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, createElement } from 'react';
+import { useState, useRef, useEffect, createElement, Fragment } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -73,53 +73,56 @@ export default function ChatPage() {
     }
   };
 
-  const renderMessageContent = (content: string): ReactNode[] => {
+  const renderMessageContent = (content: string): ReactNode => {
     // Regex for bold, links, and icons
-    const regex = /(\*\*.*?\*\*)|(\[.*?\]\(https?:\/\/[^\s)]+\))|(\[ICON:([a-zA-Z]+)\])/g;
-
+    const regex = /(\*\*.*?\*\*|\[ICON:[a-zA-Z]+\]|\[.*?\]\(https?:\/\/[^\s)]+\))/g;
+  
     const parts = content.split(regex);
-    let keyIndex = 0;
+  
+    return (
+      <>
+        {parts.map((part, index) => {
+          if (!part) return null;
+  
+          // Handle bold: **text**
+          if (part.startsWith('**') && part.endsWith('**')) {
+            return <strong key={index}>{part.substring(2, part.length - 2)}</strong>;
+          }
+  
+          // Handle icons: [ICON:Name]
+          const iconMatch = part.match(/\[ICON:([a-zA-Z]+)\]/);
+          if (iconMatch) {
+            const iconName = iconMatch[1] as keyof typeof LucideIcons;
+            const IconComponent = LucideIcons[iconName];
+            if (IconComponent) {
+              return <IconComponent key={index} className="inline-block h-4 w-4 mx-1" />;
+            }
+          }
 
-    return parts.filter(part => part).map((part, index) => {
-      keyIndex++;
-
-      // Handle bold: **text**
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={keyIndex}>{part.substring(2, part.length - 2)}</strong>;
-      }
-
-      // Handle links: [text](url)
-      const linkMatch = part.match(/\[(.*?)\]\((https?:\/\/[^\s)]+)\)/);
-      if (linkMatch) {
-        const text = linkMatch[1];
-        const url = linkMatch[2];
-        return (
-          <a
-            key={keyIndex}
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary underline hover:opacity-80"
-          >
-            {text}
-          </a>
-        );
-      }
-      
-      // Handle icons: [ICON:Name]
-      const iconMatch = part.match(/\[ICON:([a-zA-Z]+)\]/);
-      if (iconMatch) {
-        const iconName = iconMatch[1] as keyof typeof LucideIcons;
-        const IconComponent = LucideIcons[iconName];
-        if (IconComponent) {
-          return createElement(IconComponent, { key: keyIndex, className: 'inline-block h-4 w-4 mx-1' });
-        }
-      }
-
-      // Handle regular text
-      return <span key={keyIndex}>{part}</span>;
-    });
-  }
+          // Handle links: [text](url)
+          const linkMatch = part.match(/\[(.*?)\]\((https?:\/\/[^\s)]+)\)/);
+          if (linkMatch) {
+            const text = linkMatch[1];
+            const url = linkMatch[2];
+            return (
+              <a
+                key={index}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline hover:opacity-80"
+              >
+                {text}
+              </a>
+            );
+          }
+  
+          // Handle regular text
+          return <Fragment key={index}>{part}</Fragment>;
+        })}
+      </>
+    );
+  };
 
 
   return (
