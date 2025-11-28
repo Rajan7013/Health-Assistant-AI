@@ -67,3 +67,85 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+    .prose {
+        --tw-prose-body: #333;
+        --tw-prose-headings: #007AFF;
+        --tw-prose-lead: theme('colors.gray[600]');
+        --tw-prose-links: theme('colors.blue[600]');
+        --tw-prose-bold: #007AFF;
+        --tw-prose-counters: theme('colors.gray[500]');
+        --tw-prose-bullets: theme('colors.gray[300]');
+        --tw-prose-hr: theme('colors.gray[200]');
+        --tw-prose-quotes: #007AFF;
+        --tw-prose-quote-borders: #F0F9FF;
+        --tw-prose-captions: theme('colors.gray[500]');
+        --tw-prose-code: theme('colors.gray[900]');
+        --tw-prose-pre-code: theme('colors.gray[200]');
+        --tw-prose-pre-bg: theme('colors.gray[800]');
+        --tw-prose-th-borders: theme('colors.gray[300]');
+        --tw-prose-td-borders: theme('colors.gray[200]');
+    
+        --tw-prose-invert-body: theme('colors.gray[300]');
+        --tw-prose-invert-headings: #007AFF;
+        --tw-prose-invert-lead: theme('colors.gray[400]');
+        --tw-prose-invert-links: theme('colors.blue[400]');
+        --tw-prose-invert-bold: #007AFF;
+        --tw-prose-invert-counters: theme('colors.gray[400]');
+        --tw-prose-invert-bullets: theme('colors.gray[600]');
+        --tw-prose-invert-hr: theme('colors.gray[700]');
+        --tw-prose-invert-quotes: #007AFF;
+        --tw-prose-invert-quote-borders: #007AFF;
+        --tw-prose-invert-captions: theme('colors.gray[400]');
+        --tw-prose-invert-code: theme('colors.white');
+        --tw-prose-invert-pre-code: theme('colors.gray[300]');
+        --tw-prose-invert-pre-bg: theme('colors.gray[800]');
+        --tw-prose-invert-th-borders: theme('colors.gray[600]');
+        --tw-prose-invert-td-borders: theme('colors.gray[700]');
+      }
+
+    .prose h1 {
+        font-size: 24px;
+        font-weight: 700;
+        color: #007AFF;
+        margin-bottom: 12px;
+    }
+    .prose h2 {
+        font-size: 18px;
+        font-weight: 600;
+        color: #000000;
+        margin-top: 16px;
+        margin-bottom: 8px;
+    }
+    .dark .prose h2 {
+        color: #ffffff;
+    }
+
+    .prose strong {
+        font-weight: 700;
+        color: #007AFF;
+    }
+    .prose p {
+        font-size: 16px;
+        line-height: 1.6;
+        color: #333333;
+        margin-bottom: 12px;
+    }
+    .dark .prose p {
+        color: hsl(var(--foreground));
+    }
+    .prose ul li, .prose ol li {
+        margin-left: 10px;
+        margin-bottom: 6px;
+    }
+    .prose blockquote {
+        background-color: #F0F9FF;
+        border-left: 4px solid #007AFF;
+        padding: 8px;
+        font-style: italic;
+    }
+    .dark .prose blockquote {
+        background-color: hsl(var(--muted) / 0.5);
+    }
+  }
