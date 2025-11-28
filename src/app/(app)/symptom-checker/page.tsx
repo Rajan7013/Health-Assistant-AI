@@ -6,6 +6,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -15,6 +16,7 @@ import { explainSymptoms, SymptomExplanationOutput } from '@/ai/flows/ai-symptom
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Label } from '@/components/ui/label';
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
@@ -131,7 +133,7 @@ export default function SymptomCheckerPage() {
             placeholder="e.g., I have a persistent dry cough, a slight fever, and feel very tired..."
             rows={5}
             value={symptoms}
-            onChange={(e) => setSymptoms(e.target.value)}
+            onChange={(e) => setSymptoms(e.targe.value)}
             className="mb-4 text-base"
             disabled={status === 'loading'}
           />
