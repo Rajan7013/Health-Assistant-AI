@@ -35,6 +35,7 @@ import { signOut } from 'firebase/auth';
 import { useAuth } from '@/firebase';
 import { useRouter, usePathname } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useEffect, useState } from 'react';
 
 const navItems = [
   {
@@ -105,10 +106,15 @@ export default function AppLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { user, loading, clientLoaded } = useUser();
+  const { user, loading } = useUser();
   const auth = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [clientLoaded, setClientLoaded] = useState(false);
+
+  useEffect(() => {
+    setClientLoaded(true);
+  }, []);
 
   const handleLogout = async () => {
     if (!auth) return;
@@ -139,7 +145,7 @@ export default function AppLayout({
 
           <ThemeToggle />
 
-          {!clientLoaded || loading ? (
+          {(!clientLoaded || loading) ? (
             <Skeleton className="h-8 w-8 rounded-full" />
           ) : user ? (
             <DropdownMenu>

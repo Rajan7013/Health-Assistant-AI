@@ -14,15 +14,8 @@ export function useUser() {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [clientLoaded, setClientLoaded] = useState(false);
-
+  
   useEffect(() => {
-    setClientLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (!clientLoaded) return;
-
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
@@ -41,7 +34,7 @@ export function useUser() {
     });
 
     return () => unsubscribe();
-  }, [auth, router, pathname, clientLoaded]);
+  }, [auth, router, pathname]);
 
-  return { user, loading: loading || !clientLoaded, clientLoaded };
+  return { user, loading };
 }
