@@ -1,3 +1,5 @@
+'use client';
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,10 +25,17 @@ import {
   Menu,
   Settings,
   Stethoscope,
+  LogOut,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/icons';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { useUser } from '@/firebase/auth/use-user';
+import { signOut } from 'firebase/auth';
+import { useAuth } from '@/firebase';
+import { useRouter } from 'next/navigation';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const navItems = [
   {
@@ -79,6 +88,20 @@ export default function AppLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { user, loading } = useUser();
+  const auth = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push('/login');
+  };
+  
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('');
+  }
+
   return (
     <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
       <div className="hidden border-r bg-card lg:block">
@@ -94,13 +117,17 @@ export default function AppLayout({
               <AppNav />
             </div>
           </div>
-           <div className="mt-auto p-4 border-t">
-              <Button variant="ghost" className="w-full justify-start gap-2" asChild>
-                  <Link href="/settings">
-                      <Settings className="h-4 w-4" />
-                      Settings
-                  </Link>
-              </Button>
+          <div className="mt-auto p-4 border-t">
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2"
+              asChild
+            >
+              <Link href="/settings">
+                <Settings className="h-4 w-4" />
+                Settings
+              </Link>
+            </Button>
           </div>
         </div>
       </div>
@@ -108,58 +135,82 @@ export default function AppLayout({
         <header className="flex h-16 items-center gap-4 border-b bg-card px-6">
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="shrink-0 lg:hidden">
+              <Button
+                variant="outline"
+                size="icon"
+                className="shrink-0 lg:hidden"
+              >
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="flex flex-col">
               <SheetHeader>
-                <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-                 <Link href="/" className="flex items-center gap-2 font-semibold">
+                <SheetTitle>
+                   <Link href="/" className="flex items-center gap-2 font-semibold">
                     <Logo className="h-6 w-6 text-primary" />
                     <span className="font-headline text-xl">MediAssistant AI</span>
                 </Link>
-               </SheetHeader>
+                </SheetTitle>
+              </SheetHeader>
               <AppNav />
-               <div className="mt-auto border-t pt-4">
-                <Button variant="ghost" className="w-full justify-start gap-2" asChild>
-                    <Link href="/settings">
-                        <Settings className="h-4 w-4" />
-                        Settings
-                    </Link>
+              <div className="mt-auto border-t pt-4">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start gap-2"
+                  asChild
+                >
+                  <Link href="/settings">
+                    <Settings className="h-4 w-4" />
+                    Settings
+                  </Link>
                 </Button>
-            </div>
+              </div>
             </SheetContent>
           </Sheet>
           <div className="w-full flex-1">
             {/* Can add breadcrumbs or page title here */}
           </div>
           <ThemeToggle />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="secondary" size="icon" className="rounded-full">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="https://picsum.photos/seed/user/100/100" />
-                  <AvatarFallback>U</AvatarFallback>
-                </Avatar>
-                <span className="sr-only">Toggle user menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Profile</DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/settings">Settings</Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Logout</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {loading ? (
+            <Skeleton className="h-8 w-8 rounded-full" />
+          ) : user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="rounded-full"
+                >
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.photoURL ?? ''} />
+                    <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
+                  </Avatar>
+                  <span className="sr-only">Toggle user menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>{user.displayName || 'My Account'}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>Profile</DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/settings">Settings</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+             <Button asChild>
+                <Link href="/login">Login</Link>
+             </Button>
+          )}
         </header>
         <main className="flex-1 bg-background p-4 lg:p-8 overflow-auto">
-            {children}
+          {children}
         </main>
       </div>
     </div>
