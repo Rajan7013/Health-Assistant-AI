@@ -14,13 +14,14 @@
           "format": "email",
           "description": "The user's email address."
         },
-        "firstName": {
+        "displayName": {
           "type": "string",
-          "description": "The user's first name."
+          "description": "The user's full display name."
         },
-        "lastName": {
-          "type": "string",
-          "description": "The user's last name."
+        "photoURL": {
+            "type": "string",
+            "format": "uri",
+            "description": "The URL of the user's profile picture."
         },
         "createdAt": {
           "type": "string",
@@ -37,7 +38,8 @@
   },
   "auth": {
     "providers": [
-      "email"
+      "email",
+      "google"
     ]
   },
   "firestore": {

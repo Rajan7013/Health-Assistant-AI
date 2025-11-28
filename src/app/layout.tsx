@@ -6,7 +6,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'MediAssistant AI',
+  title: 'HealthMind AI',
   description: 'Your Personal AI Health Assistant',
 };
 

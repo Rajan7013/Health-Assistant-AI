@@ -109,7 +109,7 @@ export default function AppLayout({
           <div className="flex h-16 items-center border-b px-6">
             <Link href="/" className="flex items-center gap-2 font-semibold">
               <Logo className="h-6 w-6 text-primary" />
-              <span className="font-headline text-xl">MediAssistant AI</span>
+              <span className="font-headline text-xl">HealthMind AI</span>
             </Link>
           </div>
           <div className="flex-1 overflow-auto py-2">
@@ -149,7 +149,7 @@ export default function AppLayout({
                 <SheetTitle>
                    <Link href="/" className="flex items-center gap-2 font-semibold">
                     <Logo className="h-6 w-6 text-primary" />
-                    <span className="font-headline text-xl">MediAssistant AI</span>
+                    <span className="font-headline text-xl">HealthMind AI</span>
                 </Link>
                 </SheetTitle>
               </SheetHeader>
@@ -183,7 +183,7 @@ export default function AppLayout({
                   className="rounded-full"
                 >
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.photoURL ?? ''} />
+                    <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? 'User'} />
                     <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
                   </Avatar>
                   <span className="sr-only">Toggle user menu</span>
