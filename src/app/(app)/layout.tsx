@@ -12,6 +12,7 @@ import {
   Sheet,
   SheetContent,
   SheetHeader,
+  SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
 import {
@@ -113,7 +114,8 @@ export default function AppLayout({
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="flex flex-col">
-               <SheetHeader className="mb-4">
+              <SheetHeader>
+                <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                  <Link href="/" className="flex items-center gap-2 font-semibold">
                     <Logo className="h-6 w-6 text-primary" />
                     <span className="font-headline text-xl">MediAssistant AI</span>

@@ -16,7 +16,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { Loader2, AlertCircle, FileText, Shield, HeartPulse, HelpCircle, UserMd } from 'lucide-react';
+import { Loader2, AlertCircle, FileText, Shield, HeartPulse, HelpCircle, UserRoundCheck } from 'lucide-react';
 import { explainSymptoms, SymptomExplanationOutput } from '@/ai/flows/ai-symptom-explanation';
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
@@ -87,7 +87,7 @@ export default function SymptomCheckerPage() {
     { key: 'control_measures', title: 'Control Measures', icon: Shield },
     { key: 'types', title: 'Types', icon: FileText },
     { key: 'examples', title: 'Examples', icon: FileText },
-    { key: 'when_to_contact_doctors', title: 'When to Contact Doctors', icon: UserMd },
+    { key: 'when_to_contact_doctors', title: 'When to Contact Doctors', icon: UserRoundCheck },
   ];
 
   return (

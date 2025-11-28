@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileText, HeartPulse, HelpCircle, Shield, UserMd } from 'lucide-react';
+import { FileText, HeartPulse, HelpCircle, Shield, UserRoundCheck } from 'lucide-react';
 
 export function generateStaticParams() {
   return diseases.map((disease) => ({
@@ -88,7 +88,7 @@ export default function DiseaseDetailPage({
                     <Card className="border-red-500/50 bg-red-500/5">
                         <CardHeader>
                             <CardTitle className="text-red-700 dark:text-red-400 flex items-center gap-2">
-                                <UserMd className="h-5 w-5" />
+                                <UserRoundCheck className="h-5 w-5" />
                                 When to Contact a Doctor
                             </CardTitle>
                         </CardHeader>
