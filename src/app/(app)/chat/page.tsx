@@ -1,31 +1,27 @@
 "use client";
 
-import { useState, useRef, useEffect, createElement, Fragment } from 'react';
-import type { FormEvent, ReactNode } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useState, useRef, useEffect } from 'react';
+import type { FormEvent } from 'react';
+import ReactMarkdown from 'react-markdown';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { contextAwareChatbot, ContextAwareChatbotInput } from '@/ai/flows/context-aware-chatbot';
-import * as LucideIcons from 'lucide-react';
 import { Logo } from '@/components/icons';
-
-const { Bot, Send, User, Loader2, AlertTriangle } = LucideIcons;
+import { Bot, Send, User, Loader2 } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
 
-const ChatDisclaimer = () => (
-    <div className="flex items-start gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-300">
-        <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-        <p>
-            I am an AI assistant and not a substitute for a real medical professional. Please consult with a doctor for any medical advice.
-        </p>
+const MedicalDisclaimer = () => (
+    <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-2 text-center text-xs text-amber-700 dark:text-amber-300">
+        ⚠️ AI is for information only. In emergencies, contact a doctor.
     </div>
-)
+);
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -73,68 +69,18 @@ export default function ChatPage() {
     }
   };
 
-  const renderMessageContent = (content: string): ReactNode => {
-    // Regex for bold, links, and icons
-    const regex = /(\*\*.*?\*\*|\[ICON:[a-zA-Z]+\]|\[.*?\]\(https?:\/\/[^\s)]+\))/g;
-  
-    const parts = content.split(regex);
-  
-    return (
-      <>
-        {parts.map((part, index) => {
-          if (!part) return null;
-  
-          // Handle bold: **text**
-          if (part.startsWith('**') && part.endsWith('**')) {
-            return <strong key={index}>{part.substring(2, part.length - 2)}</strong>;
-          }
-  
-          // Handle icons: [ICON:Name]
-          const iconMatch = part.match(/\[ICON:([a-zA-Z]+)\]/);
-          if (iconMatch) {
-            const iconName = iconMatch[1] as keyof typeof LucideIcons;
-            const IconComponent = LucideIcons[iconName];
-            if (IconComponent) {
-              return <IconComponent key={index} className="inline-block h-4 w-4 mx-1" />;
-            }
-          }
-
-          // Handle links: [text](url)
-          const linkMatch = part.match(/\[(.*?)\]\((https?:\/\/[^\s)]+)\)/);
-          if (linkMatch) {
-            const text = linkMatch[1];
-            const url = linkMatch[2];
-            return (
-              <a
-                key={index}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary underline hover:opacity-80"
-              >
-                {text}
-              </a>
-            );
-          }
-  
-          // Handle regular text
-          return <Fragment key={index}>{part}</Fragment>;
-        })}
-      </>
-    );
-  };
-
-
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
-      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+        <div className='p-4 pt-0'>
+            <MedicalDisclaimer />
+        </div>
+      <ScrollArea className="flex-1 p-4 pt-0" ref={scrollAreaRef}>
         <div className="space-y-6">
           {messages.length === 0 && (
-            <div className="space-y-6 text-center text-muted-foreground">
+            <div className="space-y-4 text-center text-muted-foreground">
               <Bot className="mx-auto h-12 w-12" />
               <h2 className="text-2xl font-semibold">MediAssistant AI Chat</h2>
               <p>Ask me about medicines, diseases, dosages, and more.</p>
-              <ChatDisclaimer />
             </div>
           )}
           {messages.map((message, index) => (
@@ -154,15 +100,21 @@ export default function ChatPage() {
               )}
               <div
                 className={cn(
-                  'max-w-md rounded-lg p-3 text-sm shadow-sm',
+                  'max-w-prose rounded-lg p-3 text-sm shadow-sm',
                   message.role === 'user'
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-card'
                 )}
               >
-                <div className="prose prose-sm dark:prose-invert break-words">
-                  {renderMessageContent(message.content)}
-                </div>
+                <article className="prose prose-sm dark:prose-invert prose-p:my-2 prose-headings:my-3 break-words">
+                   <ReactMarkdown
+                     components={{
+                        a: ({node, ...props}) => <a className="text-primary underline hover:opacity-80" {...props} />,
+                      }}
+                   >
+                    {message.content}
+                    </ReactMarkdown>
+                </article>
               </div>
               {message.role === 'user' && (
                  <Avatar className="h-8 w-8">
