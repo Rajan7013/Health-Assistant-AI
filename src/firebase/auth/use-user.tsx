@@ -14,33 +14,34 @@ export function useUser() {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [clientLoaded, setClientLoaded] = useState(false);
 
   useEffect(() => {
+    setClientLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!clientLoaded) return;
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
 
       const onAuthRoute = isAuthRoute(pathname);
 
-      // We only want to navigate if the user's status is mismatched with the route
-      // This prevents redirects during the initial server render and avoids hydration errors
-      if (typeof window !== 'undefined') { // Ensure this only runs on the client
-        if (user) {
-          // If user is logged in, but on an auth route, redirect to dashboard
-          if (onAuthRoute) {
-            router.replace('/dashboard');
-          }
-        } else {
-          // If user is not logged in, and not on an auth route, redirect to login
-          if (!onAuthRoute) {
-            router.replace('/login');
-          }
+      if (user) {
+        if (onAuthRoute) {
+          router.replace('/dashboard');
+        }
+      } else {
+        if (!onAuthRoute) {
+          router.replace('/login');
         }
       }
     });
 
     return () => unsubscribe();
-  }, [auth, router, pathname]);
+  }, [auth, router, pathname, clientLoaded]);
 
-  return { user, loading };
+  return { user, loading: loading || !clientLoaded, clientLoaded };
 }

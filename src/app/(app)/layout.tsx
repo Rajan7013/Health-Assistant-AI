@@ -105,12 +105,13 @@ export default function AppLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { user, loading } = useUser();
+  const { user, loading, clientLoaded } = useUser();
   const auth = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   const handleLogout = async () => {
+    if (!auth) return;
     await signOut(auth);
     router.push('/login');
   };
@@ -138,7 +139,7 @@ export default function AppLayout({
 
           <ThemeToggle />
 
-          {loading ? (
+          {!clientLoaded || loading ? (
             <Skeleton className="h-8 w-8 rounded-full" />
           ) : user ? (
             <DropdownMenu>
