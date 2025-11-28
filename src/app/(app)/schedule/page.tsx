@@ -215,7 +215,7 @@ export default function SchedulePage() {
                                         <FormControl>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select an alarm tone" />
-                                        </SelectTrigger>
+                                        </Trigger>
                                         </FormControl>
                                         <SelectContent>
                                         <SelectItem value="default">Default</SelectItem>

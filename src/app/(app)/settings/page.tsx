@@ -4,8 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useUser } from "@/firebase/auth/use-user";
 
 export default function SettingsPage() {
+  const { user } = useUser();
+
   return (
     <div className="max-w-2xl mx-auto">
       <h1 className="font-headline text-4xl font-bold mb-8">Settings</h1>
@@ -69,7 +72,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">Email</p>
-                <p className="text-sm text-muted-foreground">user@example.com</p>
+                <p className="text-sm text-muted-foreground">{user?.email || "No email found"}</p>
               </div>
               <p className="text-sm text-primary hover:underline cursor-pointer">Change</p>
             </div>
