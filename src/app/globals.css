@@ -95,7 +95,11 @@
         @apply list-disc list-outside pl-5;
     }
     .prose li {
-        @apply mb-1.5 ml-[10px];
+        @apply mb-1.5 ml-[10px] text-[17px] leading-7;
+        color: #333333;
+    }
+    .dark .prose li {
+        color: #E2E8F0;
     }
     .prose blockquote {
         @apply bg-[#F0F9FF] border-l-4 border-[#007AFF] pl-4 py-2 my-2 italic;
