@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import type { FormEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -12,10 +12,44 @@ import { contextAwareChatbot, ContextAwareChatbotInput } from '@/ai/flows/contex
 import { Logo } from '@/components/icons';
 import { Bot, Send, User, Loader2 } from 'lucide-react';
 
+type MessageIntent = 'MEDICINE' | 'SYMPTOM' | 'GENERAL';
+
 interface Message {
+  id: string;
   role: 'user' | 'assistant';
   content: string;
+  intent?: MessageIntent;
 }
+
+const SmartChips = ({ intent, onSelect }: { intent: MessageIntent, onSelect: (text: string) => void }) => {
+  let chips: string[] = [];
+  
+  if (intent === 'MEDICINE') {
+    chips = ["💊 How to take it?", "⚠️ Any side effects?", "🏠 Home alternatives?"];
+  } else if (intent === 'SYMPTOM') {
+    chips = ["🥣 What should I eat?", "🛌 How much rest is needed?", "🩺 When should I see a doctor?"];
+  } else {
+    chips = ["Explain this more simply", "Is this condition serious?"];
+  }
+
+  // Don't render if there are no chips to show
+  if (!chips.length) return null;
+
+  return (
+    <div className="flex flex-row flex-wrap gap-2 mt-3 -ml-1">
+      {chips.map((chip, index) => (
+        <button 
+            key={index} 
+            onClick={() => onSelect(chip)}
+            className="px-4 py-2 text-sm font-semibold text-primary bg-primary/10 border border-primary/20 rounded-full hover:bg-primary/20 transition-colors duration-200"
+        >
+          {chip}
+        </button>
+      ))}
+    </div>
+  );
+};
+
 
 const MedicalDisclaimer = () => (
     <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-2 text-center text-xs text-amber-700 dark:text-amber-300">
@@ -38,36 +72,53 @@ export default function ChatPage() {
     }
   }, [messages]);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
+  const handleSendMessage = useCallback(async (messageContent: string) => {
+    if (!messageContent.trim() || isLoading) return;
 
-    const userMessage: Message = { role: 'user', content: input };
+    const userMessage: Message = { id: Date.now().toString(), role: 'user', content: messageContent };
     setMessages((prev) => [...prev, userMessage]);
-    setInput('');
+    if (messageContent === input) {
+        setInput('');
+    }
     setIsLoading(true);
 
     try {
       const chatHistory = messages.map(msg => ({ role: msg.role, content: msg.content }));
       
       const payload: ContextAwareChatbotInput = {
-        message: input,
+        message: messageContent,
         chatHistory: chatHistory,
       };
 
       const result = await contextAwareChatbot(payload);
       
-      const assistantMessage: Message = { role: 'assistant', content: result.response };
+      const assistantMessage: Message = { 
+        id: (Date.now() + 1).toString(),
+        role: 'assistant', 
+        content: result.response,
+        intent: result.intent,
+    };
       setMessages((prev) => [...prev, assistantMessage]);
 
     } catch (error) {
       console.error('Error with chatbot:', error);
-      const errorMessage: Message = { role: 'assistant', content: "Sorry, I'm having trouble connecting. Please try again later." };
+      const errorMessage: Message = { id: 'error-' + Date.now(), role: 'assistant', content: "Sorry, I'm having trouble connecting. Please try again later." };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
+  }, [input, isLoading, messages]);
+
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    handleSendMessage(input);
   };
+  
+  const handleChipSelect = (chipText: string) => {
+    handleSendMessage(chipText);
+  };
+
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
@@ -87,7 +138,7 @@ export default function ChatPage() {
           )}
           {messages.map((message, index) => (
             <div
-              key={index}
+              key={message.id}
               className={cn(
                 'flex items-start gap-3',
                 message.role === 'user' ? 'justify-end' : 'justify-start'
@@ -117,6 +168,9 @@ export default function ChatPage() {
                     {message.content}
                     </ReactMarkdown>
                 </article>
+                {message.role === 'assistant' && message.intent && index === messages.length - 1 && !isLoading && (
+                    <SmartChips intent={message.intent} onSelect={handleChipSelect} />
+                )}
               </div>
               {message.role === 'user' && (
                  <Avatar className="h-8 w-8">
