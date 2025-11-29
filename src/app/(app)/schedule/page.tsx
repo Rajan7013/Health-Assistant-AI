@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -25,12 +26,14 @@ import { format, getDay } from "date-fns"
 import { CalendarIcon, Bell, Pill, PlusCircle, Trash2, CalendarClock } from "lucide-react"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { useUser } from "@/firebase/auth/use-user"
 import { useFirestore } from "@/firebase"
 import { addSchedule, deleteSchedule as deleteScheduleFromDB, getSchedules } from "@/firebase/firestore/schedules"
-import { Unsubscribe } from "firebase/firestore"
+
+const MAX_FILE_SIZE = 5000000; // 5MB
+const ACCEPTED_AUDIO_TYPES = ["audio/mpeg", "audio/wav", "audio/ogg"];
 
 const formSchema = z.object({
   medicineName: z.string().min(2, {
@@ -43,11 +46,17 @@ const formSchema = z.object({
   frequency: z.enum(["daily", "weekly"], {
     required_error: "You need to select a frequency.",
   }),
+  sound: z
+    .any()
+    .refine((files) => files?.length == 1, "Audio file is required.")
+    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
+    .refine(
+      (files) => ACCEPTED_AUDIO_TYPES.includes(files?.[0]?.type),
+      ".mp3, .wav and .ogg files are accepted."
+    ),
 })
 
-// The data from Firestore will have a startDate as a Timestamp, which we'll convert to a Date.
-// The local state will work with Date objects.
-export type Schedule = z.infer<typeof formSchema> & { id: string };
+export type Schedule = z.infer<typeof formSchema> & { id: string; soundUrl?: string; };
 
 const cardColors = [
     "bg-sky-100 dark:bg-sky-900/30",
@@ -70,6 +79,7 @@ export default function SchedulePage() {
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (!user || !firestore) return;
@@ -89,12 +99,9 @@ export default function SchedulePage() {
 
         schedules.forEach(schedule => {
             const scheduleDate = new Date(schedule.startDate);
-            // Check if schedule is active
             if (now >= scheduleDate) {
                 if (schedule.time === currentTime) {
-                    if (schedule.frequency === "daily") {
-                        triggerAlert(schedule);
-                    } else if (schedule.frequency === "weekly" && getDay(scheduleDate) === currentDay) {
+                    if (schedule.frequency === "daily" || (schedule.frequency === "weekly" && getDay(scheduleDate) === currentDay)) {
                         triggerAlert(schedule);
                     }
                 }
@@ -110,6 +117,13 @@ export default function SchedulePage() {
         title: "Medication Reminder! 💊",
         description: `It's time to take your ${schedule.medicineName}.`,
     });
+    
+    if (schedule.soundUrl) {
+      if (audioRef.current) {
+        audioRef.current.src = schedule.soundUrl;
+        audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+      }
+    }
   };
 
 
@@ -122,13 +136,38 @@ export default function SchedulePage() {
     },
   })
 
+  const soundRef = form.register("sound");
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user) {
         toast({ title: "Error", description: "You must be logged in to set a schedule.", variant: "destructive" });
         return;
     }
     
-    await addSchedule(firestore, user.uid, values);
+    const soundFile = values.sound[0];
+    const soundUrl = URL.createObjectURL(soundFile);
+    
+    // We don't save the sound file to Firestore, just the metadata.
+    // The soundUrl is temporary and will be stored in local state.
+    const scheduleDataForDb = {
+        medicineName: values.medicineName,
+        startDate: values.startDate,
+        time: values.time,
+        frequency: values.frequency,
+    };
+    
+    const newScheduleId = await addSchedule(firestore, user.uid, scheduleDataForDb);
+    
+    if (newScheduleId) {
+       const newScheduleForState: Schedule = {
+            ...scheduleDataForDb,
+            id: newScheduleId,
+            sound: values.sound,
+            soundUrl: soundUrl,
+        };
+        setSchedules(prev => [...prev, newScheduleForState]);
+    }
+
 
     toast({
         title: "Schedule Set!",
@@ -138,6 +177,7 @@ export default function SchedulePage() {
     form.setValue("time", "09:00");
     form.setValue("frequency", "daily");
     form.setValue("startDate", undefined);
+    form.setValue("sound", null);
   }
 
   async function handleDeleteSchedule(id: string) {
@@ -146,6 +186,12 @@ export default function SchedulePage() {
         return;
     }
     await deleteScheduleFromDB(firestore, user.uid, id);
+    setSchedules(prev => prev.filter(s => {
+        if (s.id === id && s.soundUrl) {
+            URL.revokeObjectURL(s.soundUrl); // Clean up memory
+        }
+        return s.id !== id;
+    }));
     toast({
         title: "Schedule Removed",
         variant: "destructive",
@@ -155,6 +201,7 @@ export default function SchedulePage() {
 
   return (
     <div className="grid md:grid-cols-5 gap-8">
+        <audio ref={audioRef} />
         <div className="md:col-span-2">
             <Card className="shadow-lg">
                 <CardHeader className="bg-gradient-to-r from-primary to-blue-500 text-primary-foreground rounded-t-lg">
@@ -267,6 +314,20 @@ export default function SchedulePage() {
                                     </FormItem>
                                 )}
                             />
+
+                             <FormField
+                                control={form.control}
+                                name="sound"
+                                render={({ field }) => (
+                                   <FormItem>
+                                      <FormLabel className="font-semibold">Reminder Sound</FormLabel>
+                                      <FormControl>
+                                         <Input type="file" accept="audio/*" {...soundRef} />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
                             
                             <Button type="submit" size="lg" className="w-full bg-gradient-to-r from-primary to-blue-500 text-white hover:opacity-90 font-bold">Set Reminder</Button>
                         </form>
@@ -286,7 +347,7 @@ export default function SchedulePage() {
                         <div className="flex-1">
                             <p className="font-bold text-lg">{schedule.medicineName}</p>
                             <p className="text-sm text-muted-foreground">
-                                {schedule.frequency === 'daily' ? 'Every day' : `Every ${format(schedule.startDate, 'EEEE')}`} at {schedule.time}
+                                {schedule.frequency === 'daily' ? 'Every day' : `Every ${format(new Date(schedule.startDate), 'EEEE')}`} at {schedule.time}
                             </p>
                         </div>
                         <div className="flex items-center gap-2">

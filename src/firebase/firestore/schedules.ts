@@ -12,15 +12,22 @@ import {
 } from 'firebase/firestore';
 import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
-import type { Schedule } from '@/app/(app)/schedule/page';
 
-// The data structure used in the form and local state.
-type ScheduleFormData = Omit<Schedule, 'id'>;
+// This type is a subset of the main Schedule type in the page, but without UI-specific fields.
+export type ScheduleDocumentData = {
+    medicineName: string;
+    startDate: Date;
+    time: string;
+    frequency: 'daily' | 'weekly';
+};
 
 // The data structure stored in Firestore, with a server timestamp.
-type ScheduleDocument = Omit<ScheduleFormData, 'startDate'> & {
+type ScheduleDocument = Omit<ScheduleDocumentData, 'startDate'> & {
   startDate: Timestamp;
 };
+
+// The type that the getSchedules function will return.
+export type ScheduleWithId = ScheduleDocumentData & { id: string };
 
 // Function to get the schedules collection reference for a user.
 const getSchedulesColRef = (firestore: Firestore, userId: string) => {
@@ -37,7 +44,7 @@ const getSchedulesColRef = (firestore: Firestore, userId: string) => {
 export function getSchedules(
   firestore: Firestore,
   userId: string,
-  onData: (schedules: Schedule[]) => void
+  onData: (schedules: ScheduleWithId[]) => void
 ) {
   const colRef = getSchedulesColRef(firestore, userId);
 
@@ -72,26 +79,31 @@ export function getSchedules(
  * @param firestore - The Firestore instance.
  * @param userId - The ID of the user.
  * @param scheduleData - The schedule data from the form.
+ * @returns The ID of the newly created document.
  */
-export function addSchedule(
+export async function addSchedule(
   firestore: Firestore,
   userId: string,
-  scheduleData: ScheduleFormData
-) {
+  scheduleData: ScheduleDocumentData
+): Promise<string | null> {
   const colRef = getSchedulesColRef(firestore, userId);
   const data = {
     ...scheduleData,
     startDate: Timestamp.fromDate(scheduleData.startDate), // Convert Date to Timestamp
   };
 
-  addDoc(colRef, data).catch(async (serverError) => {
+  try {
+    const docRef = await addDoc(colRef, data);
+    return docRef.id;
+  } catch(serverError) {
     const permissionError = new FirestorePermissionError({
       path: colRef.path,
       operation: 'create',
       requestResourceData: data,
     });
     errorEmitter.emit('permission-error', permissionError);
-  });
+    return null;
+  }
 }
 
 /**
@@ -115,5 +127,3 @@ export function deleteSchedule(
     errorEmitter.emit('permission-error', permissionError);
   });
 }
-
-    
