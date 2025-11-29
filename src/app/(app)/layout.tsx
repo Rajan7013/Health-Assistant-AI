@@ -37,6 +37,7 @@ import { useAuth } from '@/firebase';
 import { useRouter, usePathname } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useEffect, useState } from 'react';
+import { cn } from '@/lib/utils';
 
 const navItems = [
   {
@@ -86,17 +87,21 @@ const AppNav = () => (
 
 const DesktopNav = ({ pathname }: { pathname: string }) => {
     return (
-        <nav className="hidden lg:flex items-center gap-2">
+        <nav className="hidden lg:flex items-center gap-2 bg-muted/50 p-2 rounded-full">
             {navItems.map((item) => (
-                <Button
+                <Link
                     key={item.label}
-                    variant={pathname === item.href ? "secondary" : "ghost"}
-                    asChild
+                    href={item.href}
+                    className={cn(
+                        "relative rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-all duration-300 hover:text-foreground hover:bg-background/50 hover:shadow-md",
+                        pathname === item.href && "bg-background text-foreground shadow-md"
+                    )}
                 >
-                    <Link href={item.href} className='text-sm font-medium'>
+                    <span className="relative z-10 flex items-center gap-2">
+                        <item.icon className="h-4 w-4" />
                         {item.label}
-                    </Link>
-                </Button>
+                    </span>
+                </Link>
             ))}
         </nav>
     )
@@ -131,17 +136,52 @@ export default function AppLayout({
   return (
     <div className="flex min-h-screen w-full flex-col">
         <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6 z-50">
-           <Link href="/" className="flex items-center gap-2 font-semibold mr-4">
-              <Logo className="h-6 w-6 text-primary" />
-              <span className="font-bold text-lg">HealthMind AI</span>
-            </Link>
+           <div className="flex items-center gap-2">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0 lg:hidden"
+                  >
+                    <Menu className="h-5 w-5" />
+                    <span className="sr-only">Toggle navigation menu</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="flex flex-col">
+                  <SheetHeader>
+                    <SheetTitle>
+                       <Link href="/" className="flex items-center gap-2 font-semibold">
+                        <Logo className="h-6 w-6 text-primary" />
+                        <span className="font-bold text-lg">HealthMind AI</span>
+                    </Link>
+                    </SheetTitle>
+                  </SheetHeader>
+                  <AppNav />
+                  <div className="mt-auto border-t pt-4">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-2"
+                      asChild
+                    >
+                      <Link href="/settings">
+                        <Settings className="h-4 w-4" />
+                        Settings
+                      </Link>
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+              <Link href="/" className="hidden lg:flex items-center gap-2 font-semibold">
+                  <Logo className="h-6 w-6 text-primary" />
+                  <span className="font-bold text-lg">HealthMind AI</span>
+              </Link>
+           </div>
           
-          <div className="hidden lg:flex flex-1 items-center gap-4">
+          <div className="flex-1 flex justify-center">
              <DesktopNav pathname={pathname} />
           </div>
           
-          <div className="flex-1 lg:hidden"></div>
-
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <Button variant="ghost" size="icon">
@@ -185,42 +225,6 @@ export default function AppLayout({
                 </Button>
             )}
            </div>
-
-           <Sheet>
-            <SheetTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="shrink-0 lg:hidden ml-2"
-              >
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle navigation menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="flex flex-col">
-              <SheetHeader>
-                <SheetTitle>
-                   <Link href="/" className="flex items-center gap-2 font-semibold">
-                    <Logo className="h-6 w-6 text-primary" />
-                    <span className="font-bold text-lg">HealthMind AI</span>
-                </Link>
-                </SheetTitle>
-              </SheetHeader>
-              <AppNav />
-              <div className="mt-auto border-t pt-4">
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start gap-2"
-                  asChild
-                >
-                  <Link href="/settings">
-                    <Settings className="h-4 w-4" />
-                    Settings
-                  </Link>
-                </Button>
-              </div>
-            </SheetContent>
-          </Sheet>
         </header>
         <main className="flex-1 bg-background p-4 lg:p-8 overflow-auto">
           {children}
