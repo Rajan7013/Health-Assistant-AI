@@ -169,7 +169,7 @@ export default function AppLayout({
                           </DropdownMenuLabel>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem asChild>
-                              <Link href="/settings">Profile</Link>
+                              <Link href="/profile">Profile</Link>
                           </DropdownMenuItem>
                            <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={handleLogout}>
@@ -203,7 +203,7 @@ export default function AppLayout({
                             <Logo className="h-8 w-8 text-primary" />
                             <span className="font-bold">HealthMind AI</span>
                         </Link>
-                         <SheetTitle className="sr-only">Menu</SheetTitle>
+                        <SheetTitle className="sr-only">Menu</SheetTitle>
                         <SheetDescription className="sr-only">App navigation</SheetDescription>
                     </SheetHeader>
                     <div className="flex-1 overflow-auto py-2">
