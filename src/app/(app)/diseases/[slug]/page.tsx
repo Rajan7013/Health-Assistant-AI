@@ -1,6 +1,5 @@
 import { diseases, type Disease } from '@/lib/data';
 import { notFound } from 'next/navigation';
-import Image from 'next/image';
 import {
   Card,
   CardContent,
@@ -54,28 +53,16 @@ export default function DiseaseDetailPage({
 
   return (
     <div className="max-w-6xl mx-auto">
-        <div className="relative h-80 rounded-2xl overflow-hidden mb-8 shadow-lg">
-            {disease.image && (
-                <Image
-                    src={disease.image.imageUrl}
-                    alt={disease.image.description}
-                    data-ai-hint={disease.image.imageHint}
-                    fill
-                    className="object-cover"
-                />
+        <div className="mb-8">
+            <h1 className="font-headline text-5xl font-bold text-foreground">
+                {disease.name}
+            </h1>
+            <p className="text-muted-foreground mt-2 max-w-3xl text-lg">{disease.shortDescription}</p>
+             {tags && (
+                <div className="flex flex-wrap gap-2 pt-4">
+                    {tags.map(tag => <Badge key={tag} variant="secondary">{tag}</Badge>)}
+                </div>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-            <div className="absolute bottom-0 left-0 p-8">
-                <h1 className="font-headline text-5xl font-bold text-white shadow-black [text-shadow:0_2px_4px_var(--tw-shadow-color)]">
-                    {disease.name}
-                </h1>
-                <p className="text-white/90 mt-2 max-w-3xl text-lg">{disease.shortDescription}</p>
-                 {tags && (
-                    <div className="flex flex-wrap gap-2 pt-4">
-                        {tags.map(tag => <Badge key={tag} variant="secondary" className="bg-white/20 text-white border-white/30 backdrop-blur-sm">{tag}</Badge>)}
-                    </div>
-                )}
-            </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
