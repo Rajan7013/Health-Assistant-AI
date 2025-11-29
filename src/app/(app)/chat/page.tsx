@@ -126,7 +126,7 @@ export default function ChatPage() {
         }
       } catch (error) {
         console.error("Error generating audio on-demand:", error);
-        audioDataUri = null; // Ensure it's null on failure
+        audioDataUri = undefined;
       } finally {
         setAudioLoadingMessageId(null);
       }
