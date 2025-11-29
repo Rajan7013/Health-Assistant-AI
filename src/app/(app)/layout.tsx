@@ -26,6 +26,7 @@ import {
   Settings,
   Stethoscope,
   LogOut,
+  Bell,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/icons';
@@ -130,63 +131,67 @@ export default function AppLayout({
   return (
     <div className="flex min-h-screen w-full flex-col">
         <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6 z-50">
-           <Link href="/" className="flex items-center gap-2 font-semibold">
+           <Link href="/" className="flex items-center gap-2 font-semibold mr-4">
               <Logo className="h-6 w-6 text-primary" />
-              <span className="font-headline text-xl hidden sm:inline-block">HealthMind AI</span>
+              <span className="font-bold text-lg">HealthMind AI</span>
             </Link>
           
           <div className="hidden lg:flex flex-1 items-center gap-4">
-             <div className='mx-auto'>
-                <DesktopNav pathname={pathname} />
-             </div>
+             <DesktopNav pathname={pathname} />
           </div>
           
           <div className="flex-1 lg:hidden"></div>
 
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="ghost" size="icon">
+                <Bell className="h-5 w-5" />
+                <span className="sr-only">Notifications</span>
+            </Button>
 
-          {(!clientLoaded || loading) ? (
-            <Skeleton className="h-8 w-8 rounded-full" />
-          ) : user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="rounded-full"
-                >
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? 'User'} />
-                    <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
-                  </Avatar>
-                  <span className="sr-only">Toggle user menu</span>
+            {(!clientLoaded || loading) ? (
+                <Skeleton className="h-8 w-8 rounded-full" />
+            ) : user ? (
+                <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button
+                    variant="secondary"
+                    size="icon"
+                    className="rounded-full"
+                    >
+                    <Avatar className="h-8 w-8">
+                        <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? 'User'} />
+                        <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
+                    </Avatar>
+                    <span className="sr-only">Toggle user menu</span>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>{user.displayName || 'My Account'}</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                        <Link href="/settings">Profile & Settings</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+                </DropdownMenu>
+            ) : (
+                <Button asChild>
+                    <Link href="/login">Login</Link>
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{user.displayName || 'My Account'}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                    <Link href="/settings">Profile & Settings</Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-             <Button asChild>
-                <Link href="/login">Login</Link>
-             </Button>
-          )}
+            )}
+           </div>
 
            <Sheet>
             <SheetTrigger asChild>
               <Button
                 variant="outline"
                 size="icon"
-                className="shrink-0 lg:hidden"
+                className="shrink-0 lg:hidden ml-2"
               >
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle navigation menu</span>
@@ -197,7 +202,7 @@ export default function AppLayout({
                 <SheetTitle>
                    <Link href="/" className="flex items-center gap-2 font-semibold">
                     <Logo className="h-6 w-6 text-primary" />
-                    <span className="font-headline text-xl">HealthMind AI</span>
+                    <span className="font-bold text-lg">HealthMind AI</span>
                 </Link>
                 </SheetTitle>
               </SheetHeader>
