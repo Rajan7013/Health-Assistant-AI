@@ -139,19 +139,17 @@ export default function DashboardPage() {
                                 <p className="text-muted-foreground">{feature.description}</p>
                             </div>
                         </CardHeader>
-                        <CardContent className="p-0 flex-1">
-                            {feature.image && (
-                                <div className="relative h-60 w-full">
-                                    <Image
-                                        src={feature.image.imageUrl}
-                                        alt={feature.image.description}
-                                        data-ai-hint={feature.image.imageHint}
-                                        fill
-                                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                                    />
-                                </div>
-                            )}
-                        </CardContent>
+                        {feature.image && (
+                            <div className="relative h-60 w-full">
+                                <Image
+                                    src={feature.image.imageUrl}
+                                    alt={feature.image.description}
+                                    data-ai-hint={feature.image.imageHint}
+                                    fill
+                                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                />
+                            </div>
+                        )}
                     </Card>
                 </Link>
             ))}
