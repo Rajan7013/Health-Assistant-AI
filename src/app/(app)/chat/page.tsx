@@ -99,45 +99,46 @@ export default function ChatPage() {
   const handlePlayAudio = useCallback(async (message: Message) => {
     const { id, content } = message;
     const audioElement = audioRef.current;
-
+  
     if (!audioElement) return;
-
+  
+    // If clicking the currently playing message, pause it
     if (playingMessageId === id) {
       audioElement.pause();
       setPlayingMessageId(null);
       return;
     }
-    
+  
+    // If another message is playing, pause it before starting the new one
     if (playingMessageId) {
-       audioElement.pause();
+      audioElement.pause();
     }
-
+  
     let audioDataUri = audioCache.current.get(content);
-
-    if (audioDataUri) {
-        audioElement.src = audioDataUri;
-        audioElement.play().catch(e => console.error("Audio playback failed:", e));
-        setPlayingMessageId(id);
-    } else {
-        setAudioLoadingMessageId(id);
-        try {
-            const result = await textToSpeech(content);
-            if (result.audioDataUri) {
-                audioDataUri = result.audioDataUri;
-                audioCache.current.set(content, audioDataUri);
-                audioElement.src = audioDataUri;
-                audioElement.play().catch(e => console.error("Audio playback failed:", e));
-                setPlayingMessageId(id);
-            } else {
-                console.error("Failed to get audio for the message.");
-                setPlayingMessageId(null);
-            }
-        } catch (error) {
-            console.error("Error in handlePlayAudio:", error);
-            setPlayingMessageId(null);
-        } finally {
-            setAudioLoadingMessageId(null);
+  
+    if (!audioDataUri) {
+      setAudioLoadingMessageId(id);
+      try {
+        const result = await textToSpeech(content);
+        if (result.audioDataUri) {
+          audioDataUri = result.audioDataUri;
+          audioCache.current.set(content, audioDataUri);
         }
+      } catch (error) {
+        console.error("Error generating audio on-demand:", error);
+        audioDataUri = null; // Ensure it's null on failure
+      } finally {
+        setAudioLoadingMessageId(null);
+      }
+    }
+  
+    if (audioDataUri) {
+      audioElement.src = audioDataUri;
+      audioElement.play().catch(e => console.error("Audio playback failed:", e));
+      setPlayingMessageId(id);
+    } else {
+      console.error("Failed to get audio for the message.");
+      setPlayingMessageId(null);
     }
   }, [playingMessageId]);
 
