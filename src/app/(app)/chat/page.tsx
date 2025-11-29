@@ -68,6 +68,7 @@ export default function ChatPage() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const mediaSourceRef = useRef<MediaSource | null>(null);
   const sourceBufferRef = useRef<SourceBuffer | null>(null);
@@ -83,9 +84,10 @@ export default function ChatPage() {
     }
   }, [messages]);
   
-  const handleAudioEnded = () => {
+  const handleAudioEnded = useCallback(() => {
     setPlayingMessageId(null);
-  };
+    setIsAudioPlaying(false);
+  }, []);
   
   useEffect(() => {
     const audioElement = audioRef.current;
@@ -97,9 +99,9 @@ export default function ChatPage() {
         audioElement.removeEventListener('pause', handleAudioEnded);
       };
     }
-  }, [audioRef]);
+  }, [audioRef, handleAudioEnded]);
 
-  const appendNextChunk = () => {
+  const appendNextChunk = useCallback(() => {
     if (isAppending.current || audioStreamQueue.current.length === 0 || !sourceBufferRef.current || sourceBufferRef.current.updating) {
       return;
     }
@@ -113,15 +115,24 @@ export default function ChatPage() {
         isAppending.current = false;
       }
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (sourceBufferRef.current) {
+      sourceBufferRef.current.onupdateend = () => {
+        isAppending.current = false;
+        appendNextChunk();
+      };
+    }
+  }, [appendNextChunk]);
+
 
   const handlePlayAudio = async (message: Message) => {
     const { id, content } = message;
-    
-    if (playingMessageId === id && audioRef.current) {
-      audioRef.current.pause();
-      setPlayingMessageId(null);
-      return;
+
+    if (isAudioPlaying && playingMessageId === id && audioRef.current) {
+        audioRef.current.pause();
+        return;
     }
     
     if (!content.trim()) return;
@@ -132,33 +143,51 @@ export default function ChatPage() {
     try {
       const mediaSource = new MediaSource();
       mediaSourceRef.current = mediaSource;
+      
+      const audioUrl = URL.createObjectURL(mediaSource);
 
       if (audioRef.current) {
-        audioRef.current.src = URL.createObjectURL(mediaSource);
-        audioRef.current.play().catch(e => console.error("Audio playback failed", e));
+        audioRef.current.src = audioUrl;
+        audioRef.current.play().then(() => setIsAudioPlaying(true)).catch(e => {
+            console.error("Audio playback failed", e);
+            setIsAudioPlaying(false);
+            setPlayingMessageId(null);
+        });
       }
 
       mediaSource.addEventListener('sourceopen', async () => {
-        URL.revokeObjectURL(audioRef.current!.src);
+        URL.revokeObjectURL(audioUrl); 
         const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
         sourceBufferRef.current = sourceBuffer;
-
+        
         sourceBuffer.addEventListener('updateend', () => {
-          isAppending.current = false;
-          appendNextChunk();
+            isAppending.current = false;
+            appendNextChunk();
         });
 
         const stream = await textToSpeechStream(content);
         for await (const chunk of stream) {
-          if (chunk) {
             audioStreamQueue.current.push(chunk.buffer);
-            appendNextChunk();
-          }
+            if (!isAppending.current && !sourceBuffer.updating) {
+                appendNextChunk();
+            }
         }
+
+        // When stream ends, check if MediaSource is still open and close it
+        const checkStreamEnd = () => {
+            if (!sourceBuffer.updating && audioStreamQueue.current.length === 0 && mediaSource.readyState === 'open') {
+                mediaSource.endOfStream();
+            } else if (mediaSource.readyState === 'open') {
+                setTimeout(checkStreamEnd, 100);
+            }
+        }
+        checkStreamEnd();
       });
+
     } catch (error) {
       console.error("Error generating or streaming speech:", error);
       setPlayingMessageId(null);
+      setIsAudioPlaying(false);
     } finally {
       setMessages(prev => prev.map(msg => msg.id === id ? { ...msg, isAudioLoading: false } : msg));
     }
@@ -269,12 +298,10 @@ export default function ChatPage() {
                         onClick={() => handlePlayAudio(message)}
                         disabled={message.isAudioLoading}
                     >
-                        {message.isAudioLoading || playingMessageId === message.id ? (
-                          playingMessageId === message.id ? (
-                            <Pause className="h-4 w-4" />
-                          ) : (
+                        {message.isAudioLoading ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
-                          )
+                        ) : (playingMessageId === message.id && isAudioPlaying) ? (
+                            <Pause className="h-4 w-4" />
                         ) : (
                             <Volume2 className="h-4 w-4" />
                         )}
