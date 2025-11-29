@@ -98,23 +98,40 @@ export default function ChatPage() {
 
 
   const handlePlayAudio = async (message: Message) => {
-    const { id, audioDataUri } = message;
+    const { id, content } = message;
+    let { audioDataUri } = message;
 
+    // If this message is already playing, pause it.
     if (playingMessageId === id && audioRef.current) {
-      if (!audioRef.current.paused) {
-        audioRef.current.pause();
-        setPlayingMessageId(null);
-      } else {
-        audioRef.current.play();
-        setPlayingMessageId(id);
-      }
+      audioRef.current.pause();
+      setPlayingMessageId(null);
       return;
     }
-    
+
+    // If we already have the audio, play it.
     if (audioDataUri && audioRef.current) {
+      audioRef.current.src = audioDataUri;
+      audioRef.current.play();
+      setPlayingMessageId(id);
+      return;
+    }
+
+    // If we don't have the audio, fetch it now.
+    setMessages(prev => prev.map(msg => msg.id === id ? { ...msg, isAudioLoading: true } : msg));
+    try {
+      const result = await textToSpeech(content);
+      audioDataUri = result.audioDataUri;
+      setMessages(prev => prev.map(msg => msg.id === id ? { ...msg, audioDataUri, isAudioLoading: false } : msg));
+
+      // Play the newly fetched audio
+      if (audioRef.current) {
         audioRef.current.src = audioDataUri;
         audioRef.current.play();
         setPlayingMessageId(id);
+      }
+    } catch (error) {
+      console.error("Error generating speech:", error);
+      setMessages(prev => prev.map(msg => msg.id === id ? { ...msg, isAudioLoading: false } : msg));
     }
   };
   
@@ -237,7 +254,7 @@ export default function ChatPage() {
                         variant="ghost"
                         className="absolute -top-3 -right-3 h-7 w-7 rounded-full bg-background border text-primary opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                         onClick={() => handlePlayAudio(message)}
-                        disabled={message.isAudioLoading || !message.audioDataUri}
+                        disabled={message.isAudioLoading}
                     >
                         {message.isAudioLoading ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
