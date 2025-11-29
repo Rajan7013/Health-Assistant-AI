@@ -20,7 +20,6 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   intent?: MessageIntent;
-  isAudioLoading?: boolean;
 }
 
 const SmartChips = ({ intent, onSelect }: { intent: MessageIntent, onSelect: (text: string) => void }) => {
@@ -68,9 +67,9 @@ export default function ChatPage() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [audioLoadingMessageId, setAudioLoadingMessageId] = useState<string | null>(null);
 
-  // Client-side cache for audio data
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioCache = useRef(new Map<string, string>());
 
   useEffect(() => {
@@ -96,72 +95,62 @@ export default function ChatPage() {
     }
   }, [handleAudioEnded]);
   
-  const generateAndCacheAudio = useCallback(async (messageId: string, content: string) => {
-    if (!content.trim() || audioCache.current.has(content)) {
-      return;
+  const getAudioForMessage = useCallback(async (content: string): Promise<string | null> => {
+    if (audioCache.current.has(content)) {
+      return audioCache.current.get(content)!;
     }
 
-    setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, isAudioLoading: true } : msg));
+    if (!content.trim()) {
+      return null;
+    }
+    
     try {
       const { audioDataUri } = await textToSpeech(content);
-      // Only cache if generation was successful
       if (audioDataUri) {
         audioCache.current.set(content, audioDataUri);
+        return audioDataUri;
       }
+      return null;
     } catch (error) {
-      console.error('Error pre-fetching audio:', error);
-    } finally {
-      setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, isAudioLoading: false } : msg));
+      console.error('Error generating audio:', error);
+      return null;
     }
   }, []);
 
   const handlePlayAudio = useCallback(async (message: Message) => {
     const { id, content } = message;
-
+    
     // If this message is already playing, pause it.
     if (playingMessageId === id && audioRef.current) {
       audioRef.current.pause();
-      setPlayingMessageId(null); // Clear the playing state
+      setPlayingMessageId(null);
       return;
     }
+    
+    setPlayingMessageId(null);
+    if(audioRef.current) {
+        audioRef.current.pause();
+    }
+    
+    setAudioLoadingMessageId(id);
 
-    // Start playing a new message
-    setPlayingMessageId(id);
+    const audioDataUri = await getAudioForMessage(content);
+    
+    setAudioLoadingMessageId(null);
 
-    // If audio is already in cache, play it directly
-    if (audioCache.current.has(content)) {
-      const audioDataUri = audioCache.current.get(content);
-      if (audioRef.current && audioDataUri) {
+    if (audioDataUri && audioRef.current) {
         audioRef.current.src = audioDataUri;
-        audioRef.current.play().catch(console.error);
-      } else {
-         setPlayingMessageId(null); // Something wrong with cached data
-      }
-      return;
-    }
-
-    // If not in cache, generate it on-demand
-    setMessages(prev => prev.map(msg => msg.id === id ? { ...msg, isAudioLoading: true } : msg));
-    try {
-      const { audioDataUri } = await textToSpeech(content);
-      // Only play and cache if generation was successful
-      if (audioDataUri) {
-        audioCache.current.set(content, audioDataUri);
-        if (audioRef.current) {
-          audioRef.current.src = audioDataUri;
-          audioRef.current.play().catch(console.error);
-        }
-      } else {
-        // If generation failed, stop the loading state
+        audioRef.current.play().catch(e => {
+            console.error("Audio playback failed:", e);
+            setPlayingMessageId(null);
+        });
+        setPlayingMessageId(id);
+    } else {
+        console.error("Failed to get audio, or audio element is not available.");
         setPlayingMessageId(null);
-      }
-    } catch (error) {
-      console.error('Error generating audio on-demand:', error);
-      setPlayingMessageId(null); // Stop loading on error
-    } finally {
-      setMessages(prev => prev.map(msg => msg.id === id ? { ...msg, isAudioLoading: false } : msg));
     }
-  }, [playingMessageId]);
+  }, [playingMessageId, getAudioForMessage]);
+
 
   const handleSendMessage = useCallback(async (messageContent: string) => {
     if (!messageContent.trim() || isLoading) return;
@@ -190,12 +179,11 @@ export default function ChatPage() {
         role: 'assistant', 
         content: result.response,
         intent: result.intent,
-        isAudioLoading: false,
       };
       setMessages((prev) => [...prev, assistantMessage]);
       
       // Proactively generate and cache audio for the new message
-      generateAndCacheAudio(assistantMessage.id, assistantMessage.content);
+      getAudioForMessage(assistantMessage.content);
 
     } catch (error) {
       console.error('Error with chatbot:', error);
@@ -204,7 +192,7 @@ export default function ChatPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, messages, generateAndCacheAudio]);
+  }, [input, isLoading, messages, getAudioForMessage]);
   
 
   const handleSubmit = async (e: FormEvent) => {
@@ -269,9 +257,9 @@ export default function ChatPage() {
                         variant="ghost"
                         className="absolute -top-3 -right-3 h-7 w-7 rounded-full bg-background border text-primary opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                         onClick={() => handlePlayAudio(message)}
-                        disabled={message.isAudioLoading}
+                        disabled={audioLoadingMessageId === message.id}
                     >
-                        {message.isAudioLoading ? (
+                        {audioLoadingMessageId === message.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (playingMessageId === message.id) ? (
                             <Pause className="h-4 w-4" />
@@ -338,5 +326,3 @@ export default function ChatPage() {
     </div>
   );
 }
-
-    
