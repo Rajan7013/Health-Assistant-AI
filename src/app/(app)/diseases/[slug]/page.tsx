@@ -7,7 +7,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileText, HeartPulse, HelpCircle, Shield, UserRoundCheck, AlertTriangle } from 'lucide-react';
+import { FileText, HeartPulse, HelpCircle, Shield, UserRoundCheck, AlertTriangle, Lightbulb, Stethoscope, Dna, Activity } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export function generateStaticParams() {
   return diseases.map((disease) => ({
@@ -19,11 +20,18 @@ function getDiseaseFromSlug(slug: string): Disease | undefined {
   return diseases.find((disease) => disease.slug === slug);
 }
 
-const DetailSection = ({ icon, title, content }: { icon: React.ElementType, title: string, content: string | undefined }) => {
+const detailSections = [
+    { key: 'symptoms', title: 'Symptoms', icon: Stethoscope, borderColor: 'border-t-blue-500' },
+    { key: 'causes', title: 'Causes', icon: Dna, borderColor: 'border-t-green-500' },
+    { key: 'controlMeasures', title: 'Control Measures', icon: Shield, borderColor: 'border-t-yellow-500' },
+    { key: 'examples', title: 'Examples', icon: Lightbulb, borderColor: 'border-t-purple-500' },
+];
+
+const DetailSection = ({ icon, title, content, borderColor }: { icon: React.ElementType, title: string, content: string | undefined, borderColor: string }) => {
     if (!content) return null;
     const Icon = icon;
     return (
-        <Card>
+        <Card className={cn("border-t-4 transition-shadow hover:shadow-lg", borderColor)}>
             <CardHeader>
                 <CardTitle className="flex items-center gap-3">
                     <Icon className="h-6 w-6 text-primary" />
@@ -67,10 +75,15 @@ export default function DiseaseDetailPage({
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
-                <DetailSection icon={HeartPulse} title="Symptoms" content={disease.details.symptoms} />
-                <DetailSection icon={HelpCircle} title="Causes" content={disease.details.causes} />
-                <DetailSection icon={Shield} title="Control Measures" content={disease.details.controlMeasures} />
-                <DetailSection icon={FileText} title="Examples" content={disease.details.examples} />
+                {detailSections.map(section => (
+                    <DetailSection 
+                        key={section.key}
+                        icon={section.icon}
+                        title={section.title}
+                        content={disease.details[section.key as keyof typeof disease.details]}
+                        borderColor={section.borderColor}
+                    />
+                ))}
             </div>
             <div className="space-y-6 lg:col-span-1">
                  <Card className="border-red-500/50 bg-red-500/10">
