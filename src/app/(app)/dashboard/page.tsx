@@ -130,7 +130,7 @@ export default function DashboardPage() {
             {coreFeatures.map(feature => (
                 <Link href={feature.href} key={feature.title} className="group">
                     <Card className="h-full flex flex-col overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-shadow duration-300">
-                        <CardHeader className={`p-6 ${feature.color} flex items-center gap-4`}>
+                        <CardHeader className={`p-6 ${feature.color} flex flex-row items-center gap-4`}>
                            <div className={`p-3 bg-white rounded-full shadow-sm`}>
                                 <feature.icon className={`h-6 w-6 ${feature.iconColor}`} />
                             </div>
