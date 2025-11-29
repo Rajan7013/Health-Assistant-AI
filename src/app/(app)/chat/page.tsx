@@ -68,8 +68,9 @@ export default function ChatPage() {
   
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [audioLoadingMessageId, setAudioLoadingMessageId] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
 
   useEffect(() => {
@@ -88,11 +89,13 @@ export default function ChatPage() {
 
     if (!audioElement) return;
 
+    // If clicking the currently playing message, pause it
     if (isAudioPlaying && playingMessageId === id) {
       audioElement.pause();
       return;
     }
 
+    // If another message is playing, stop it before starting new one
     if (isAudioPlaying) {
       audioElement.pause();
     }
@@ -104,36 +107,41 @@ export default function ChatPage() {
     try {
       const stream = textToSpeechStream(content);
       const mediaSource = new MediaSource();
-      audioElement.src = URL.createObjectURL(mediaSource);
+      const url = URL.createObjectURL(mediaSource);
+      audioElement.src = url;
 
       mediaSource.addEventListener('sourceopen', async () => {
-        const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
-        let hasPlayed = false;
+        URL.revokeObjectURL(url); // Revoke URL after source is open
+        try {
+            const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+            
+            // This flag ensures we only try to play once
+            let hasStartedPlaying = false;
 
-        sourceBuffer.addEventListener('updateend', () => {
-          if (!hasPlayed && !sourceBuffer.updating && mediaSource.readyState === 'open') {
-            audioElement.play().catch(e => console.error("Playback error:", e));
-            hasPlayed = true;
-            setIsAudioPlaying(true);
-            setAudioLoadingMessageId(null);
-          }
-        });
-        
-        for await (const chunk of stream) {
-            sourceBuffer.appendBuffer(chunk);
-        }
-        
-        // This is a failsafe for very short audio streams
-        setTimeout(() => {
-            if (!hasPlayed && !sourceBuffer.updating && mediaSource.readyState === 'open') {
-                 audioElement.play().catch(e => console.error("Playback error on short stream:", e));
-                 hasPlayed = true;
-                 setIsAudioPlaying(true);
-                 setAudioLoadingMessageId(null);
+            sourceBuffer.onupdateend = () => {
+                if (!hasStartedPlaying && mediaSource.readyState === 'open' && !sourceBuffer.updating) {
+                    audioElement.play().catch(e => console.error("Playback error:", e));
+                }
+            };
+            
+            for await (const chunk of stream) {
+                // Wait for previous append to complete
+                if (sourceBuffer.updating) {
+                    await new Promise(resolve => sourceBuffer.addEventListener('updateend', resolve, { once: true }));
+                }
+                sourceBuffer.appendBuffer(chunk);
             }
-        }, 500);
-
+        } catch (e) {
+            console.error('Error with MediaSource or stream:', e);
+            setAudioLoadingMessageId(null);
+            setPlayingMessageId(null);
+        }
       });
+      
+      audioElement.onplaying = () => {
+        setIsAudioPlaying(true);
+        setAudioLoadingMessageId(null);
+      };
 
     } catch (error) {
       console.error("Failed to get audio for the message:", error);
@@ -149,7 +157,7 @@ export default function ChatPage() {
   };
   
   const handleAudioPause = () => {
-    // Only set playing to false if it's a true pause, not end-of-track
+    // Only update state if it was a manual pause, not at the end of the track
     if (audioRef.current && !audioRef.current.ended) {
       setPlayingMessageId(null);
       setIsAudioPlaying(false);
