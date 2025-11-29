@@ -21,7 +21,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { format } from "date-fns"
+import { format, getDay } from "date-fns"
 import { CalendarIcon, Bell, Pill, PlusCircle, Trash2, CalendarClock } from "lucide-react"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
@@ -32,7 +32,7 @@ import {
     SelectValue,
   } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
 
 const formSchema = z.object({
@@ -54,8 +54,8 @@ const formSchema = z.object({
 type Schedule = z.infer<typeof formSchema> & { id: number };
 
 const initialSchedules: Schedule[] = [
-    { id: 1, medicineName: "Lisinopril", startDate: new Date(), time: "08:00", frequency: "daily", sound: "default" },
-    { id: 2, medicineName: "Metformin", startDate: new Date(), time: "20:00", frequency: "daily", sound: "chime" },
+    { id: 1, medicineName: "Lisinopril", startDate: new Date(), time: "08:00", frequency: "daily", sound: "chime" },
+    { id: 2, medicineName: "Metformin", startDate: new Date(), time: "20:00", frequency: "daily", sound: "radar" },
 ]
 
 const cardColors = [
@@ -77,6 +77,47 @@ const iconColors = [
 export default function SchedulePage() {
   const [schedules, setSchedules] = useState<Schedule[]>(initialSchedules);
   const { toast } = useToast();
+  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+        const now = new Date();
+        const currentTime = format(now, "HH:mm");
+        const currentDay = getDay(now);
+
+        schedules.forEach(schedule => {
+            const scheduleDate = new Date(schedule.startDate);
+            // Check if schedule is active
+            if (now >= scheduleDate) {
+                if (schedule.frequency === "daily" && schedule.time === currentTime) {
+                    triggerAlert(schedule);
+                } else if (schedule.frequency === "weekly" && getDay(scheduleDate) === currentDay && schedule.time === currentTime) {
+                    triggerAlert(schedule);
+                }
+            }
+        });
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, [schedules]);
+
+  const triggerAlert = (schedule: Schedule) => {
+    toast({
+        title: "Medication Reminder! 💊",
+        description: `It's time to take your ${schedule.medicineName}.`,
+    });
+    
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+
+    const soundFile = schedule.sound === 'default' ? 'chime' : schedule.sound;
+    const newAudio = new Audio(`/sounds/${soundFile}.mp3`);
+    newAudio.play().catch(e => console.error("Audio play failed:", e));
+    setAudio(newAudio);
+  };
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -84,7 +125,7 @@ export default function SchedulePage() {
       medicineName: "",
       time: "09:00",
       frequency: "daily",
-      sound: "default",
+      sound: "chime",
     },
   })
 
@@ -98,7 +139,7 @@ export default function SchedulePage() {
     form.reset();
     form.setValue("time", "09:00");
     form.setValue("frequency", "daily");
-    form.setValue("sound", "default");
+    form.setValue("sound", "chime");
     form.setValue("startDate", undefined);
   }
 
@@ -239,7 +280,6 @@ export default function SchedulePage() {
                                         </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                        <SelectItem value="default">Default</SelectItem>
                                         <SelectItem value="chime">Chime</SelectItem>
                                         <SelectItem value="radar">Radar</SelectItem>
                                         <SelectItem value="signal">Signal</SelectItem>
@@ -294,5 +334,3 @@ export default function SchedulePage() {
     </div>
   );
 }
-
-    
