@@ -13,6 +13,9 @@ import {
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
 import {
@@ -24,7 +27,6 @@ import {
   LogOut,
   User,
   Stethoscope,
-  Settings,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/icons';
@@ -196,12 +198,14 @@ export default function AppLayout({
                 </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="flex flex-col p-0">
-                      <div className="flex h-20 items-center border-b px-6">
+                      <SheetHeader className="h-20 flex-row items-center border-b px-6">
                         <Link href="/" className="flex items-center gap-3 font-semibold text-lg">
                             <Logo className="h-8 w-8 text-primary" />
                             <span className="font-bold">HealthMind AI</span>
                         </Link>
-                    </div>
+                         <SheetTitle className="sr-only">Menu</SheetTitle>
+                        <SheetDescription className="sr-only">App navigation</SheetDescription>
+                    </SheetHeader>
                     <div className="flex-1 overflow-auto py-2">
                       <MobileNav pathname={clientLoaded ? pathname : null} />
                     </div>
