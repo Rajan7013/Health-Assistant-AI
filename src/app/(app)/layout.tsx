@@ -95,7 +95,7 @@ const AppNav = () => (
   </nav>
 );
 
-const DesktopNav = ({ pathname }: { pathname: string }) => {
+const DesktopNav = ({ pathname }: { pathname: string | null }) => {
     return (
         <nav className="hidden lg:flex items-center gap-2">
             {navItems.map((item) => (
@@ -126,12 +126,14 @@ export default function AppLayout({
   const { user, loading } = useUser();
   const auth = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
   const [clientLoaded, setClientLoaded] = useState(false);
-
+  
   useEffect(() => {
     setClientLoaded(true);
   }, []);
+  
+  const pathname = usePathname();
+
 
   const handleLogout = async () => {
     if (!auth) return;
@@ -190,7 +192,7 @@ export default function AppLayout({
            </div>
           
           <div className="flex-1 flex justify-center">
-             {clientLoaded && <DesktopNav pathname={pathname} />}
+             <DesktopNav pathname={clientLoaded ? pathname : null} />
           </div>
           
           <div className="flex items-center gap-2">
