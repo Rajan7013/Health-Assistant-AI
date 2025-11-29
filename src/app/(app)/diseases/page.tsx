@@ -1,3 +1,6 @@
+
+'use client';
+
 import {
   Card,
   CardContent,
@@ -6,7 +9,19 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { diseases } from '@/lib/data';
+import { cn } from '@/lib/utils';
 import Link from 'next/link';
+
+const cardColors = [
+    "border-t-blue-500",
+    "border-t-green-500",
+    "border-t-yellow-500",
+    "border-t-purple-500",
+    "border-t-red-500",
+    "border-t-indigo-500",
+    "border-t-pink-500",
+    "border-t-sky-500",
+];
 
 export default function DiseasesPage() {
   return (
@@ -19,9 +34,12 @@ export default function DiseasesPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {diseases.map((disease) => (
+        {diseases.map((disease, index) => (
           <Link href={`/diseases/${disease.slug}`} key={disease.slug} className="block h-full">
-            <Card className="h-full flex flex-col group overflow-hidden hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1">
+            <Card className={cn(
+                "h-full flex flex-col group overflow-hidden hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1 border-t-4",
+                cardColors[index % cardColors.length]
+                )}>
               <CardHeader className="flex-grow">
                 <CardTitle className="text-xl group-hover:text-primary transition-colors">
                   {disease.name}
