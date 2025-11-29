@@ -13,8 +13,6 @@ import {
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
 import {
@@ -25,7 +23,8 @@ import {
   Menu,
   LogOut,
   User,
-  Stethoscope
+  Stethoscope,
+  Settings,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/icons';
@@ -43,55 +42,64 @@ const navItems = [
     href: '/dashboard',
     icon: LayoutDashboard,
     label: 'Dashboard',
-    color: 'text-sky-400',
-    hoverColor: 'hover:bg-sky-500/10',
   },
   {
     href: '/symptom-checker',
     icon: Stethoscope,
     label: 'Symptom Checker',
-    color: 'text-indigo-400',
-    hoverColor: 'hover:bg-indigo-500/10',
   },
   {
     href: '/chat',
     icon: Bot,
     label: 'AI Chat',
-    color: 'text-purple-400',
-    hoverColor: 'hover:bg-purple-500/10',
   },
   {
     href: '/schedule',
     icon: CalendarClock,
     label: 'Schedule',
-    color: 'text-blue-400',
-    hoverColor: 'hover:bg-blue-500/10',
   },
   {
     href: '/diseases',
     icon: BookHeart,
     label: 'Diseases',
-    color: 'text-green-400',
-    hoverColor: 'hover:bg-green-500/10',
   },
 ];
 
-const AppNav = ({ pathname, isMobile = false }: { pathname: string | null, isMobile?: boolean }) => (
-  <nav className={cn("flex gap-2", isMobile ? "flex-col px-4" : "items-center")}>
+const DesktopNav = ({ pathname }: { pathname: string | null }) => (
+    <nav className="hidden lg:flex items-center gap-2">
+        {navItems.map((item) => (
+            <Link
+                key={item.label}
+                href={item.href}
+                className={cn(
+                    "flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                    pathname === item.href
+                        ? "bg-white text-blue-700 shadow-md"
+                        : "bg-white/10 text-white hover:bg-white/20"
+                )}
+            >
+                <item.icon className="h-4 w-4" />
+                <span>{item.label}</span>
+            </Link>
+        ))}
+    </nav>
+);
+
+
+const MobileNav = ({ pathname }: { pathname: string | null }) => (
+  <nav className="flex flex-col gap-2 px-4">
     {navItems.map((item) => (
        <Link href={item.href} key={item.label}>
         <Button
           variant="ghost"
           className={cn(
-            "w-full justify-start gap-3 rounded-lg text-base font-semibold",
-            isMobile ? "px-3 py-6" : "px-4 py-2",
+            "w-full justify-start gap-3 rounded-lg text-base font-semibold px-3 py-6",
             pathname === item.href
                 ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-            !isMobile && item.hoverColor
+                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
           )}
         >
-          <item.icon className={cn("h-5 w-5", item.color)} />
+          <item.icon className="h-5 w-5" />
           {item.label}
         </Button>
       </Link>
@@ -125,29 +133,43 @@ export default function AppLayout({
   
   return (
     <div className="flex min-h-screen w-full flex-col">
-       <header className="sticky top-0 z-30 flex h-20 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-lg md:px-6">
+       <header className="sticky top-0 z-30 flex h-20 items-center gap-4 px-4 md:px-6 bg-header-gradient text-white shadow-lg">
           <div className="flex h-full items-center">
               <Link href="/" className="flex items-center gap-3 font-semibold text-lg">
-                  <Logo className="h-8 w-8 text-primary" />
+                  <Logo className="h-8 w-8" />
                   <span className="font-bold">HealthMind AI</span>
               </Link>
           </div>
 
           <div className="flex-1 flex justify-center">
-              <div className="hidden lg:flex">
-                <AppNav pathname={clientLoaded ? pathname : null} />
-              </div>
+            <DesktopNav pathname={clientLoaded ? pathname : null} />
           </div>
           
           <div className="flex items-center gap-2">
-              <ThemeToggle />
+              <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white rounded-full">
+                          <Settings className="h-5 w-5" />
+                      </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-60">
+                      <DropdownMenuLabel>Appearance</DropdownMenuLabel>
+                       <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                            <div className="flex items-center justify-between w-full">
+                                <span>Theme</span>
+                                <ThemeToggle />
+                            </div>
+                       </DropdownMenuItem>
+                  </DropdownMenuContent>
+              </DropdownMenu>
+
               {(!clientLoaded || loading) ? (
                   <Skeleton className="h-10 w-10 rounded-full" />
               ) : user ? (
                   <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                           <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                               <Avatar className="h-10 w-10 border-2 border-primary/50">
+                           <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
+                               <Avatar className="h-10 w-10">
                                   <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? 'User'} />
                                   <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
                               </Avatar>
@@ -170,7 +192,7 @@ export default function AppLayout({
                       </DropdownMenuContent>
                   </DropdownMenu>
               ) : (
-                   <Button asChild variant="outline">
+                   <Button asChild className="bg-profile-button-gradient text-white font-bold rounded-full">
                       <Link href="/login">Login</Link>
                   </Button>
               )}
@@ -180,9 +202,9 @@ export default function AppLayout({
             <Sheet>
                 <SheetTrigger asChild>
                 <Button
-                    variant="outline"
+                    variant="ghost"
                     size="icon"
-                    className="shrink-0"
+                    className="shrink-0 text-white hover:bg-white/20 hover:text-white"
                 >
                     <Menu className="h-5 w-5" />
                     <span className="sr-only">Toggle navigation menu</span>
@@ -196,7 +218,7 @@ export default function AppLayout({
                         </Link>
                     </div>
                     <div className="flex-1 overflow-auto py-2">
-                      <AppNav pathname={clientLoaded ? pathname : null} isMobile={true} />
+                      <MobileNav pathname={clientLoaded ? pathname : null} />
                     </div>
                       <div className="mt-auto p-4 border-t">
                         {user && (
