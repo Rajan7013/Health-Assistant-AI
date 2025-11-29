@@ -55,6 +55,7 @@ const coreFeatures = [
         icon: Stethoscope,
         color: 'bg-indigo-100 dark:bg-indigo-900/30',
         iconColor: 'text-indigo-600 dark:text-indigo-400',
+        shadowColor: 'hover:shadow-indigo-500/30',
     },
     {
         title: 'AI Health Assistant',
@@ -63,6 +64,7 @@ const coreFeatures = [
         icon: Bot,
         color: 'bg-purple-100 dark:bg-purple-900/30',
         iconColor: 'text-purple-600 dark:text-purple-400',
+        shadowColor: 'hover:shadow-purple-500/30',
     },
 ]
 
@@ -131,7 +133,7 @@ export default function DashboardPage() {
         <div className="grid gap-6 md:grid-cols-2">
             {coreFeatures.map(feature => (
                  <Link href={feature.href} key={feature.title}>
-                    <div className={`p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col text-center items-center gap-4 ${feature.color}`}>
+                    <div className={`p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col text-center items-center gap-4 ${feature.color} ${feature.shadowColor}`}>
                         <div className="p-4 bg-white rounded-full shadow-md">
                             <feature.icon className={`h-8 w-8 ${feature.iconColor}`} />
                         </div>
