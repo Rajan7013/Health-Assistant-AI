@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { contextAwareChatbot, ContextAwareChatbotInput } from '@/ai/flows/context-aware-chatbot';
-import { Logo } from '@/components/icons';
 import { Bot, Send, User, Loader2, Sparkles } from 'lucide-react';
 
 type MessageIntent = 'MEDICINE' | 'SYMPTOM' | 'GENERAL' | 'EMERGENCY';
@@ -25,24 +24,24 @@ const SmartChips = ({ intent, onSelect }: { intent: MessageIntent, onSelect: (te
   let chips: string[] = [];
   
   if (intent === 'MEDICINE') {
-    chips = ["💊 How to take it?", "⚠️ Any side effects?", "🏠 Natural alternative?"];
+    chips = ["How should I take this?", "What are the side effects?", "Is there a natural alternative?"];
   } else if (intent === 'SYMPTOM') {
-    chips = ["🥣 What should I eat?", "🛌 How many days to rest?", "🩺 Is this serious?"];
+    chips = ["What kind of food should I eat?", "How many days should I rest?", "When should I see a doctor?"];
   } else if (intent === 'EMERGENCY') {
-    chips = ["📞 Call Ambulance", "🏥 Find Hospital"];
+    chips = ["Call Ambulance", "Find Nearest Hospital"];
   } else {
-    chips = ["Tell me more", "Explain simply"];
+    chips = ["Explain this more simply", "Tell me more about that"];
   }
 
   return (
     <div className="mt-4 ml-1 max-w-[85%]">
-        <p className="text-xs text-muted-foreground font-medium mb-2">Suggested Questions:</p>
+        <p className="text-xs text-muted-foreground font-medium mb-2">Suggested Replies:</p>
         <div className="flex flex-row flex-wrap gap-2">
             {chips.map((chip, index) => (
                 <button 
                     key={index} 
                     onClick={() => onSelect(chip)}
-                    className="px-3 py-1.5 text-xs font-semibold text-primary bg-background border border-primary/50 rounded-full hover:bg-primary/10 transition-all duration-200 transform hover:scale-105"
+                    className="px-3 py-1.5 text-xs font-semibold text-primary bg-background border border-primary/30 rounded-full hover:bg-primary/10 transition-all duration-200 transform hover:scale-105"
                 >
                 {chip}
                 </button>
@@ -55,7 +54,7 @@ const SmartChips = ({ intent, onSelect }: { intent: MessageIntent, onSelect: (te
 
 const MedicalDisclaimer = () => (
     <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-2 text-center text-xs text-amber-700 dark:text-amber-300">
-        ⚠️ AI is for information only. In emergencies, contact a doctor.
+        AI is for informational purposes only. In case of a medical emergency, please contact a qualified doctor.
     </div>
 );
 
@@ -80,7 +79,6 @@ export default function ChatPage() {
     const userMessage: Message = { id: Date.now().toString(), role: 'user', content: messageContent };
     setMessages((prev) => [...prev, userMessage]);
     
-    // Clear the main input if we're sending its content
     if (messageContent === input) {
         setInput('');
     }
@@ -107,7 +105,7 @@ export default function ChatPage() {
   
     } catch (error) {
       console.error('Error with chatbot:', error);
-      const errorMessage: Message = { id: 'error-' + Date.now(), role: 'assistant', content: "Sorry, I'm having trouble connecting. Please try again later." };
+      const errorMessage: Message = { id: 'error-' + Date.now(), role: 'assistant', content: "Sorry, I'm having trouble connecting right now. Please try again in a moment." };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
@@ -126,7 +124,7 @@ export default function ChatPage() {
 
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] bg-background rounded-2xl shadow-2xl border">
+    <div className="flex flex-col h-[calc(100vh-10rem)] bg-background rounded-2xl shadow-2xl border">
         {messages.length > 0 && (
             <div className='p-4 pb-0'>
                 <MedicalDisclaimer />
@@ -166,7 +164,7 @@ export default function ChatPage() {
                 className={cn(
                   'max-w-[85%] rounded-2xl p-4 text-sm shadow-md',
                   message.role === 'user'
-                    ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-lg'
+                    ? 'bg-primary text-primary-foreground rounded-br-lg'
                     : 'bg-card border rounded-bl-lg'
                 )}
               >
@@ -210,12 +208,12 @@ export default function ChatPage() {
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about a medicine or symptom..."
+            placeholder="Ask about a medicine or describe a symptom..."
             className="flex-1 pr-12 h-12 text-base rounded-full"
             disabled={isLoading}
             autoFocus
           />
-          <Button type="submit" size="icon" disabled={isLoading || !input.trim()} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full h-9 w-9 bg-gradient-to-br from-primary to-blue-400 hover:opacity-90 transition-opacity">
+          <Button type="submit" size="icon" disabled={isLoading || !input.trim()} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full h-9 w-9 bg-primary hover:bg-primary/90 transition-opacity">
             <Send className="h-4 w-4" />
           </Button>
         </form>
@@ -223,3 +221,5 @@ export default function ChatPage() {
     </div>
   );
 }
+
+    

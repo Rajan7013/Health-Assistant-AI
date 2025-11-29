@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
+    --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
@@ -12,9 +12,9 @@
     --popover-foreground: 222.2 84% 4.9%;
     --primary: 210 100% 56%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 0 0% 96.1%;
+    --secondary: 0 0% 98%;
     --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 0 0% 90%;
+    --muted: 0 0% 94%;
     --muted-foreground: 215.4 16.3% 46.9%;
     --accent: 25.9 91.1% 54.1%;
     --accent-foreground: 60 9.1% 97.8%;
@@ -102,41 +102,38 @@
 
 @layer components {
     .prose h1 {
-        @apply text-2xl font-bold mb-3;
+        @apply text-2xl font-bold mb-4 mt-2;
         color: hsl(var(--primary));
     }
     .prose h2 {
-        @apply text-lg font-semibold mt-4 mb-2;
+        @apply text-xl font-semibold mt-6 mb-3;
         color: hsl(var(--foreground));
     }
     .dark .prose h2 {
         color: hsl(var(--foreground));
     }
     .prose strong {
-        @apply font-bold;
-        color: hsl(var(--primary));
+        @apply font-semibold;
+        color: hsl(var(--foreground));
+    }
+    .dark .prose strong {
+        color: hsl(var(--foreground));
     }
     .prose p {
-        @apply text-[17px] mb-3 leading-7;
-        color: hsl(var(--muted-foreground));
-    }
-    .dark .prose p {
-        color: hsl(var(--muted-foreground));
+        @apply leading-6 my-4;
     }
     .prose ul {
-        @apply list-disc list-outside pl-5;
+        @apply list-disc list-outside pl-5 my-4 space-y-2;
     }
     .prose li {
-        @apply mb-1.5 ml-[10px] text-[17px] leading-7;
-        color: hsl(var(--muted-foreground));
-    }
-    .dark .prose li {
-        color: hsl(var(--muted-foreground));
+        @apply pl-2;
     }
     .prose blockquote {
-        @apply bg-primary/10 border-l-4 border-primary pl-4 py-2 my-2 italic;
+        @apply bg-muted border-l-4 border-primary pl-4 py-2 my-4 italic;
     }
     .dark .prose blockquote {
         background-color: hsl(var(--primary) / 0.1);
     }
   }
+
+    
