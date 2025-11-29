@@ -116,11 +116,16 @@ export default function ChatPage() {
       return;
     }
 
-    // If we don't have the audio, fetch it now.
+    // If we don't have the audio, fetch it now (either for the first time or retrying).
     setMessages(prev => prev.map(msg => msg.id === id ? { ...msg, isAudioLoading: true } : msg));
     try {
       const result = await textToSpeech(content);
       audioDataUri = result.audioDataUri;
+      
+      if (!audioDataUri) {
+          throw new Error("Failed to generate audio.");
+      }
+
       setMessages(prev => prev.map(msg => msg.id === id ? { ...msg, audioDataUri, isAudioLoading: false } : msg));
 
       // Play the newly fetched audio
@@ -164,16 +169,24 @@ export default function ChatPage() {
         content: result.response,
         intent: result.intent,
         audioDataUri: null,
-        isAudioLoading: true,
+        isAudioLoading: false, // Start as false
       };
       setMessages((prev) => [...prev, assistantMessage]);
   
       // Proactively generate audio
+      setMessages(prev => prev.map(msg => msg.id === assistantMessageId ? { ...msg, isAudioLoading: true } : msg));
       textToSpeech(result.response)
         .then(({ audioDataUri }) => {
-          setMessages(prev => prev.map(msg => 
-            msg.id === assistantMessageId ? { ...msg, audioDataUri, isAudioLoading: false } : msg
-          ));
+          if (audioDataUri) {
+            setMessages(prev => prev.map(msg => 
+              msg.id === assistantMessageId ? { ...msg, audioDataUri, isAudioLoading: false } : msg
+            ));
+          } else {
+            // Handle case where pre-fetch returns no audio
+            setMessages(prev => prev.map(msg => 
+              msg.id === assistantMessageId ? { ...msg, isAudioLoading: false } : msg
+            ));
+          }
         })
         .catch(error => {
           console.error("Error pre-fetching speech:", error);
