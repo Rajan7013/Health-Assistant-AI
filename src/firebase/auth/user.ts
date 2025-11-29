@@ -24,15 +24,17 @@ export const updateUserProfile = async (
   await updateProfile(user, data);
 
   // This is a secondary operation to keep the Firestore document in sync.
-  // We will attempt the update, but we won't show a UI error if it fails,
-  // as the primary auth update has already succeeded. This prevents the
-  // misleading error toast.
+  // We will attempt the update and catch any permission errors to provide
+  // rich debugging information.
   const userDocRef = doc(firestore, 'users', user.uid);
-  try {
-    await updateDoc(userDocRef, data);
-  } catch (error) {
-    // Log the error for debugging, but don't show it to the user
-    // as it can be confusing if the main profile update worked.
-    console.error("Firestore sync failed, but user's auth profile was updated:", error);
-  }
+  
+  updateDoc(userDocRef, data)
+    .catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: userDocRef.path,
+        operation: 'update',
+        requestResourceData: data,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
 };
