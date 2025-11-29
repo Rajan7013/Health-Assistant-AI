@@ -23,10 +23,9 @@ import {
   CalendarClock,
   LayoutDashboard,
   Menu,
-  Settings,
-  Stethoscope,
   LogOut,
   User,
+  Stethoscope
 } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/icons';
@@ -77,45 +76,27 @@ const navItems = [
   },
 ];
 
-const AppNav = () => (
-  <nav className="flex flex-col gap-2">
+const AppNav = ({ pathname }: { pathname: string | null }) => (
+  <nav className="flex flex-col gap-2 px-4">
     {navItems.map((item) => (
-      <Button
-        key={item.label}
-        variant="ghost"
-        className="w-full justify-start gap-2"
-        asChild
-      >
-        <Link href={item.href}>
-          <item.icon className={cn("h-4 w-4", item.color)} />
+       <Link href={item.href} key={item.label}>
+        <Button
+          variant="ghost"
+          className={cn(
+            "w-full justify-start gap-3 rounded-lg px-3 py-6 text-base font-semibold",
+            pathname === item.href
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+          )}
+        >
+          <item.icon className="h-5 w-5" />
           {item.label}
-        </Link>
-      </Button>
+        </Button>
+      </Link>
     ))}
   </nav>
 );
 
-const DesktopNav = ({ pathname }: { pathname: string | null }) => {
-    return (
-        <nav className="hidden lg:flex items-center gap-2">
-            {navItems.map((item) => (
-                <Link
-                    key={item.label}
-                    href={item.href}
-                    className={cn(
-                        "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-300",
-                        pathname === item.href
-                            ? "bg-white text-primary shadow-md"
-                            : "bg-white/10 text-white hover:bg-white/20"
-                    )}
-                >
-                    <item.icon className={cn("h-5 w-5", pathname === item.href ? item.color : 'text-white')} />
-                    {item.label}
-                </Link>
-            ))}
-        </nav>
-    )
-}
 
 export default function AppLayout({
   children,
@@ -140,111 +121,135 @@ export default function AppLayout({
     router.push('/login');
   };
   
-  const getInitials = (name: string | null | undefined) => {
-    if (!name) return 'U';
-    return name.split(' ').map(n => n[0]).join('');
-  }
-
   return (
-    <div className="flex min-h-screen w-full flex-col">
-        <header className="sticky top-0 z-50" style={{ background: 'var(--header-gradient)' }}>
-            <div className="flex h-20 items-center gap-4 px-4 md:px-6">
-                <div className="flex items-center gap-2 lg:gap-4">
-                  <Sheet>
-                    <SheetTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="shrink-0 lg:hidden text-white hover:bg-white/20 hover:text-white"
-                      >
-                        <Menu className="h-5 w-5" />
-                        <span className="sr-only">Toggle navigation menu</span>
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="flex flex-col">
-                      <SheetHeader>
-                        <SheetTitle>
-                           <Link href="/" className="flex items-center gap-2 font-semibold">
-                            <div className="p-2 bg-primary/10 rounded-lg">
-                                <Logo className="h-6 w-6 text-primary" />
-                            </div>
-                            <span className="font-bold text-lg">HealthMind AI</span>
-                        </Link>
-                        </SheetTitle>
-                      </SheetHeader>
-                      <AppNav />
-                      <div className="mt-auto border-t pt-4">
-                        <Button
-                          variant="ghost"
-                          className="w-full justify-start gap-2"
-                          asChild
-                        >
-                          <Link href="/settings">
-                            <Settings className="h-4 w-4" />
-                            Settings
-                          </Link>
-                        </Button>
-                      </div>
-                    </SheetContent>
-                  </Sheet>
-                  <Link href="/" className="hidden lg:flex items-center gap-3">
-                      <div className="p-2 bg-white/10 rounded-lg">
-                          <Logo className="h-7 w-7 text-white" />
-                      </div>
-                      <span className="font-bold text-xl text-white">HealthMind AI</span>
-                  </Link>
+    <div className="flex min-h-screen w-full">
+        <aside className="hidden lg:block w-72 flex-col border-r bg-background/30 backdrop-blur-lg">
+            <div className="flex h-full max-h-screen flex-col gap-4">
+                <div className="flex h-20 items-center border-b px-6">
+                    <Link href="/" className="flex items-center gap-3 font-semibold text-lg">
+                        <Logo className="h-8 w-8 text-primary" />
+                        <span className="font-bold">HealthMind AI</span>
+                    </Link>
                 </div>
-              
-                <div className="flex-1 flex justify-center">
-                    <DesktopNav pathname={clientLoaded ? pathname : null} />
+                <div className="flex-1 overflow-auto py-2">
+                    <AppNav pathname={clientLoaded ? pathname : null} />
                 </div>
-              
-                <div className="flex items-center gap-2">
-                    <ThemeToggle />
-
-                    {(!clientLoaded || loading) ? (
-                        <Skeleton className="h-10 w-24 rounded-lg" />
+                <div className="mt-auto p-4 border-t">
+                     {(!clientLoaded || loading) ? (
+                        <div className="flex items-center gap-3">
+                           <Skeleton className="h-10 w-10 rounded-full" />
+                           <div className="flex-1 space-y-1">
+                             <Skeleton className="h-4 w-24" />
+                             <Skeleton className="h-3 w-32" />
+                           </div>
+                        </div>
                     ) : user ? (
                         <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                className="rounded-lg font-bold text-white shadow-md transition-all duration-300 hover:shadow-lg hover:brightness-110"
-                                style={{ background: 'var(--profile-gradient)' }}
-                            >
-                                <Avatar className="h-6 w-6 mr-2 border-2 border-white/50">
-                                    <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? 'User'} />
-                                    <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
-                                </Avatar>
-                                {user.displayName?.split(' ')[0] || 'Profile'}
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>{user.displayName || 'My Account'}</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem asChild>
-                                <Link href="/settings">Profile & Settings</Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={handleLogout}>
-                                <LogOut className="mr-2 h-4 w-4" />
-                                Logout
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="w-full justify-start gap-3 h-auto p-2">
+                                     <Avatar className="h-10 w-10 border-2 border-primary/50">
+                                        <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? 'User'} />
+                                        <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
+                                    </Avatar>
+                                    <div className="text-left">
+                                        <p className="font-semibold text-base">{user.displayName || 'User'}</p>
+                                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                                    </div>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-64">
+                                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem asChild>
+                                    <Link href="/settings">Profile</Link>
+                                </DropdownMenuItem>
+                                 <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={handleLogout}>
+                                    <LogOut className="mr-2 h-4 w-4" />
+                                    Logout
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
                         </DropdownMenu>
                     ) : (
-                        <Button asChild
-                            className="rounded-lg font-bold text-white shadow-md transition-all duration-300 hover:shadow-lg hover:brightness-110"
-                            style={{ background: 'var(--profile-gradient)' }}
-                        >
+                         <Button asChild className="w-full" variant="outline">
                             <Link href="/login">Login</Link>
                         </Button>
                     )}
                 </div>
             </div>
-        </header>
-        <main className="flex-1 bg-background p-4 lg:p-8 overflow-auto">
-          {children}
-        </main>
+        </aside>
+        <div className="flex flex-col flex-1">
+            <header className="sticky top-0 z-10 flex h-20 items-center gap-4 border-b bg-background/30 backdrop-blur-lg px-4 md:px-6 lg:hidden">
+                <Sheet>
+                    <SheetTrigger asChild>
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        className="shrink-0 lg:hidden"
+                    >
+                        <Menu className="h-5 w-5" />
+                        <span className="sr-only">Toggle navigation menu</span>
+                    </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="flex flex-col p-0">
+                         <div className="flex h-20 items-center border-b px-6">
+                            <Link href="/" className="flex items-center gap-3 font-semibold text-lg">
+                                <Logo className="h-8 w-8 text-primary" />
+                                <span className="font-bold">HealthMind AI</span>
+                            </Link>
+                        </div>
+                        <div className="flex-1 overflow-auto py-2">
+                          <AppNav pathname={clientLoaded ? pathname : null} />
+                        </div>
+                         <div className="mt-auto p-4 border-t">
+                            {user && (
+                                <Button onClick={handleLogout} variant="ghost" className="w-full justify-start gap-2">
+                                     <LogOut className="mr-2 h-4 w-4" />
+                                    Logout
+                                </Button>
+                            )}
+                         </div>
+                    </SheetContent>
+                </Sheet>
+
+                <div className="flex-1 text-center">
+                    <Link href="/" className="flex items-center gap-3 font-semibold text-lg justify-center">
+                        <Logo className="h-8 w-8 text-primary" />
+                    </Link>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                    <ThemeToggle />
+                     {user && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                    <Avatar className="h-8 w-8">
+                                        <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? 'User'} />
+                                        <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
+                                    </Avatar>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>{user.displayName || 'My Account'}</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem asChild>
+                                    <Link href="/settings">Settings</Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={handleLogout}>
+                                <LogOut className="mr-2 h-4 w-4" />
+                                Logout
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
+                </div>
+            </header>
+            <main className="flex-1 overflow-auto p-4 lg:p-8">
+            {children}
+            </main>
+        </div>
     </div>
   );
 }

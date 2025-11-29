@@ -18,10 +18,6 @@ const config = {
       },
     },
     extend: {
-      fontFamily: {
-        body: ['Poppins', 'sans-serif'],
-        headline: ['Poppins', 'sans-serif'],
-      },
       fontWeight: {
         headline: '900',
       },
