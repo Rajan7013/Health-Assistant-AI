@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -11,7 +12,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, AlertCircle, Sparkles, Calendar, ShieldCheck, Activity, BrainCircuit } from 'lucide-react';
+import { Loader2, AlertCircle, Sparkles, Calendar, ShieldCheck, BrainCircuit } from 'lucide-react';
 import { explainSymptoms, SymptomExplanationOutput } from '@/ai/flows/ai-symptom-explanation';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -112,14 +113,11 @@ export default function SymptomCheckerPage() {
   return (
     <div className="container mx-auto max-w-3xl py-8">
       <div className="text-center">
-        <div className="inline-block p-4 bg-primary/10 rounded-full">
-          <Activity className="h-12 w-12 text-primary" />
-        </div>
-        <h1 className="font-headline text-4xl font-bold text-center mt-4 mb-2 bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400">
+        <h1 className="font-headline text-4xl font-bold text-center mb-2 bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400">
             AI Symptom Analyzer
         </h1>
         <p className="text-muted-foreground text-center mb-8 max-w-md mx-auto">
-            Describe your symptoms to generate a diagnostic report. This is not a substitute for professional medical advice.
+            Describe your symptoms to get an AI-powered report. This is for informational purposes only.
         </p>
       </div>
 
