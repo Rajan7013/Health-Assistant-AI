@@ -68,9 +68,9 @@ export default function ChatPage() {
   
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [audioLoadingMessageId, setAudioLoadingMessageId] = useState<string | null>(null);
-
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioCache = useRef(new Map<string, string>());
+
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -80,6 +80,7 @@ export default function ChatPage() {
       });
     }
   }, [messages]);
+
 
   const handleAudioEnded = useCallback(() => {
     setPlayingMessageId(null);
@@ -119,35 +120,39 @@ export default function ChatPage() {
 
   const handlePlayAudio = useCallback(async (message: Message) => {
     const { id, content } = message;
-    
-    // If this message is already playing, pause it.
+
     if (playingMessageId === id && audioRef.current) {
       audioRef.current.pause();
       setPlayingMessageId(null);
       return;
     }
-    
-    setPlayingMessageId(null);
-    if(audioRef.current) {
+
+    if (audioRef.current && playingMessageId) {
         audioRef.current.pause();
+        setPlayingMessageId(null);
     }
     
     setAudioLoadingMessageId(id);
 
-    const audioDataUri = await getAudioForMessage(content);
-    
-    setAudioLoadingMessageId(null);
+    try {
+        const audioDataUri = await getAudioForMessage(content);
 
-    if (audioDataUri && audioRef.current) {
-        audioRef.current.src = audioDataUri;
-        audioRef.current.play().catch(e => {
-            console.error("Audio playback failed:", e);
+        if (audioDataUri && audioRef.current) {
+            audioRef.current.src = audioDataUri;
+            audioRef.current.play().catch(e => {
+                console.error("Audio playback failed:", e);
+                setPlayingMessageId(null);
+            });
+            setPlayingMessageId(id);
+        } else {
+            console.error("Failed to get audio or audio element is not available.");
             setPlayingMessageId(null);
-        });
-        setPlayingMessageId(id);
-    } else {
-        console.error("Failed to get audio, or audio element is not available.");
+        }
+    } catch (error) {
+        console.error("Error in handlePlayAudio:", error);
         setPlayingMessageId(null);
+    } finally {
+        setAudioLoadingMessageId(null);
     }
   }, [playingMessageId, getAudioForMessage]);
 
@@ -207,7 +212,7 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-10rem)] bg-background rounded-2xl shadow-2xl border">
-      <audio ref={audioRef} />
+      <audio ref={audioRef} onEnded={() => setPlayingMessageId(null)} onPause={() => setPlayingMessageId(null)} />
         {messages.length > 0 && (
             <div className='p-4 pb-0'>
                 <MedicalDisclaimer />
