@@ -46,18 +46,16 @@ const quickAccessItems = [
 const coreFeatures = [
     {
         title: 'Symptom Checker',
-        description: 'Analyze your symptoms with our AI-powered tool for insights.',
+        description: 'Analyze your symptoms with our AI for insights.',
         href: '/symptom-checker',
-        image: PlaceHolderImages.find(img => img.id === 'symptom-checker'),
         icon: Stethoscope,
         color: 'bg-indigo-100 dark:bg-indigo-900/30',
         iconColor: 'text-indigo-600 dark:text-indigo-400',
     },
     {
         title: 'AI Health Assistant',
-        description: 'Ask our AI about medicines, diseases, and get health advice.',
+        description: 'Ask our AI about medicines and health advice.',
         href: '/chat',
-        image: PlaceHolderImages.find(img => img.id === 'ai-chat'),
         icon: Bot,
         color: 'bg-purple-100 dark:bg-purple-900/30',
         iconColor: 'text-purple-600 dark:text-purple-400',
@@ -126,31 +124,19 @@ export default function DashboardPage() {
 
       <div>
         <h2 className="text-2xl font-bold mb-4">Explore Our Core Features</h2>
-        <div className="grid gap-8 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2">
             {coreFeatures.map(feature => (
-                <Link href={feature.href} key={feature.title} className="group">
-                    <Card className="h-full flex flex-col overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-shadow duration-300">
-                        <CardHeader className={`p-6 ${feature.color} flex flex-row items-center gap-4`}>
-                           <div className={`p-3 bg-white rounded-full shadow-sm`}>
-                                <feature.icon className={`h-6 w-6 ${feature.iconColor}`} />
-                            </div>
-                            <div>
-                                <CardTitle className="text-xl font-bold">{feature.title}</CardTitle>
-                                <p className="text-muted-foreground">{feature.description}</p>
-                            </div>
-                        </CardHeader>
-                        {feature.image && (
-                            <div className="relative h-60 w-full">
-                                <Image
-                                    src={feature.image.imageUrl}
-                                    alt={feature.image.description}
-                                    data-ai-hint={feature.image.imageHint}
-                                    fill
-                                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                                />
-                            </div>
-                        )}
-                    </Card>
+                <Link href={feature.href} key={feature.title}>
+                    <div className={`p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 flex items-center gap-6 ${feature.color}`}>
+                        <div className="p-4 bg-white rounded-full shadow-md">
+                            <feature.icon className={`h-8 w-8 ${feature.iconColor}`} />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-foreground">{feature.title}</h3>
+                            <p className="text-muted-foreground mt-1">{feature.description}</p>
+                        </div>
+                        <ArrowRight className="h-6 w-6 text-muted-foreground ml-auto" />
+                    </div>
                 </Link>
             ))}
         </div>
