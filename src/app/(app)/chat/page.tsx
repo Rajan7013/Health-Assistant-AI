@@ -88,7 +88,6 @@ export default function ChatPage() {
     }
     
     try {
-      setAudioLoadingMessageId(text);
       const result = await textToSpeech(text);
       if (result && result.audioDataUri) {
         audioCache.set(text, result.audioDataUri);
@@ -96,8 +95,6 @@ export default function ChatPage() {
       }
     } catch (error) {
       console.error("Error generating audio:", error);
-    } finally {
-        setAudioLoadingMessageId(null);
     }
     
     return null;
@@ -150,6 +147,8 @@ export default function ChatPage() {
   };
   
   const handleAudioPause = () => {
+    // This is fired when audio is paused for any reason, including when we manually call pause()
+    // To prevent wrongly clearing the state when we switch tracks, check if the pause was "natural"
     if (audioRef.current && audioRef.current.paused) {
       setPlayingMessageId(null);
     }
