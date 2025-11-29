@@ -81,80 +81,72 @@ export default function ChatPage() {
     }
   }, [messages]);
 
-
-  const handleAudioEnded = useCallback(() => {
-    setPlayingMessageId(null);
-  }, []);
-
-  useEffect(() => {
-    const audioElement = audioRef.current;
-    if (audioElement) {
-        audioElement.addEventListener('ended', handleAudioEnded);
-        return () => {
-            audioElement.removeEventListener('ended', handleAudioEnded);
-        };
+  // Proactive audio generation
+  const generateAndCacheAudio = useCallback(async (content: string) => {
+    if (!content.trim() || audioCache.current.has(content)) {
+      return;
     }
-  }, [handleAudioEnded]);
-  
-  const getAudioForMessage = useCallback(async (content: string): Promise<string | null> => {
-    if (audioCache.current.has(content)) {
-      return audioCache.current.get(content)!;
-    }
-
-    if (!content.trim()) {
-      return null;
-    }
-    
     try {
       const { audioDataUri } = await textToSpeech(content);
       if (audioDataUri) {
         audioCache.current.set(content, audioDataUri);
-        return audioDataUri;
       }
-      return null;
     } catch (error) {
-      console.error('Error generating audio:', error);
-      return null;
+      console.error("Error pre-fetching audio:", error);
     }
   }, []);
 
   const handlePlayAudio = useCallback(async (message: Message) => {
     const { id, content } = message;
+    const audioElement = audioRef.current;
 
-    if (playingMessageId === id && audioRef.current) {
-      audioRef.current.pause();
+    if (!audioElement) return;
+
+    // If clicking the currently playing message, pause it
+    if (playingMessageId === id) {
+      audioElement.pause();
       setPlayingMessageId(null);
       return;
     }
-
-    if (audioRef.current && playingMessageId) {
-        audioRef.current.pause();
-        setPlayingMessageId(null);
-    }
     
+    // Pause any currently playing audio
+    if (playingMessageId) {
+       audioElement.pause();
+    }
+
     setAudioLoadingMessageId(id);
 
     try {
-        const audioDataUri = await getAudioForMessage(content);
+      let audioDataUri = audioCache.current.get(content);
 
-        if (audioDataUri && audioRef.current) {
-            audioRef.current.src = audioDataUri;
-            audioRef.current.play().catch(e => {
-                console.error("Audio playback failed:", e);
-                setPlayingMessageId(null);
-            });
-            setPlayingMessageId(id);
-        } else {
-            console.error("Failed to get audio or audio element is not available.");
-            setPlayingMessageId(null);
+      // If not cached, generate and cache it now
+      if (!audioDataUri) {
+        const result = await textToSpeech(content);
+        if (result.audioDataUri) {
+            audioDataUri = result.audioDataUri;
+            audioCache.current.set(content, audioDataUri);
         }
+      }
+
+      if (audioDataUri) {
+        audioElement.src = audioDataUri;
+        audioElement.play().catch(e => {
+            console.error("Audio playback failed:", e);
+            setPlayingMessageId(null);
+        });
+        setPlayingMessageId(id);
+      } else {
+         console.error("Failed to get audio for the message.");
+         setPlayingMessageId(null);
+      }
+
     } catch (error) {
         console.error("Error in handlePlayAudio:", error);
         setPlayingMessageId(null);
     } finally {
         setAudioLoadingMessageId(null);
     }
-  }, [playingMessageId, getAudioForMessage]);
+  }, [playingMessageId]);
 
 
   const handleSendMessage = useCallback(async (messageContent: string) => {
@@ -188,7 +180,7 @@ export default function ChatPage() {
       setMessages((prev) => [...prev, assistantMessage]);
       
       // Proactively generate and cache audio for the new message
-      getAudioForMessage(assistantMessage.content);
+      generateAndCacheAudio(assistantMessage.content);
 
     } catch (error) {
       console.error('Error with chatbot:', error);
@@ -197,7 +189,7 @@ export default function ChatPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, messages, getAudioForMessage]);
+  }, [input, isLoading, messages, generateAndCacheAudio]);
   
 
   const handleSubmit = async (e: FormEvent) => {
