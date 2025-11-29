@@ -18,7 +18,7 @@ service cloud.firestore {
       // A user can update their own profile.
       // They can only change mutable fields like displayName.
       // They cannot change their uid, email, or when the account was created.
-      allow update: if isOwner(userId)
+      allow update: if isOwner(userId) 
                     && request.resource.data.uid == resource.data.uid
                     && request.resource.data.email == resource.data.email
                     && request.resource.data.createdAt == resource.data.createdAt;
