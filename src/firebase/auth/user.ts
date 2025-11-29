@@ -1,7 +1,7 @@
 'use client';
 
 import { updateProfile, type Auth } from 'firebase/auth';
-import { doc, updateDoc, type Firestore, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, type Firestore, serverTimestamp } from 'firebase/firestore';
 import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
@@ -21,12 +21,11 @@ export const updateUserProfile = async (
   }
 
   // This is the primary operation: updating the user's auth profile.
-  // This will throw an error if it fails, which will be caught by the form's logic.
   await updateProfile(user, data);
 
   // This is a secondary operation to keep the Firestore document in sync.
-  // We will attempt the update and catch any permission errors to provide
-  // rich debugging information.
+  // We use setDoc with merge:true to either create or update the document,
+  // which prevents the "No document to update" error if the doc doesn't exist.
   const userDocRef = doc(firestore, 'users', user.uid);
   
   const updateData = {
@@ -34,18 +33,18 @@ export const updateUserProfile = async (
     updatedAt: serverTimestamp(),
   };
 
-  updateDoc(userDocRef, updateData)
+  setDoc(userDocRef, updateData, { merge: true })
     .catch(async (serverError) => {
-      // Handle permission errors specifically
+      // Handle permission errors specifically for debugging.
       if (serverError.code === 'permission-denied') {
         const permissionError = new FirestorePermissionError({
           path: userDocRef.path,
           operation: 'update',
-          requestResourceData: data,
+          requestResourceData: updateData,
         });
         errorEmitter.emit('permission-error', permissionError);
       } else {
-        // For other errors, you might want to log them or handle them differently
+        // For other errors, log them.
         console.error('Error updating user profile in Firestore:', serverError);
       }
     });
