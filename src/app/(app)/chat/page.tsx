@@ -102,49 +102,42 @@ export default function ChatPage() {
 
     if (!audioElement) return;
 
-    // If clicking the currently playing message, pause it
     if (playingMessageId === id) {
       audioElement.pause();
       setPlayingMessageId(null);
       return;
     }
     
-    // Pause any currently playing audio
     if (playingMessageId) {
        audioElement.pause();
     }
 
-    setAudioLoadingMessageId(id);
+    let audioDataUri = audioCache.current.get(content);
 
-    try {
-      let audioDataUri = audioCache.current.get(content);
-
-      // If not cached, generate and cache it now
-      if (!audioDataUri) {
-        const result = await textToSpeech(content);
-        if (result.audioDataUri) {
-            audioDataUri = result.audioDataUri;
-            audioCache.current.set(content, audioDataUri);
-        }
-      }
-
-      if (audioDataUri) {
+    if (audioDataUri) {
         audioElement.src = audioDataUri;
-        audioElement.play().catch(e => {
-            console.error("Audio playback failed:", e);
-            setPlayingMessageId(null);
-        });
+        audioElement.play().catch(e => console.error("Audio playback failed:", e));
         setPlayingMessageId(id);
-      } else {
-         console.error("Failed to get audio for the message.");
-         setPlayingMessageId(null);
-      }
-
-    } catch (error) {
-        console.error("Error in handlePlayAudio:", error);
-        setPlayingMessageId(null);
-    } finally {
-        setAudioLoadingMessageId(null);
+    } else {
+        setAudioLoadingMessageId(id);
+        try {
+            const result = await textToSpeech(content);
+            if (result.audioDataUri) {
+                audioDataUri = result.audioDataUri;
+                audioCache.current.set(content, audioDataUri);
+                audioElement.src = audioDataUri;
+                audioElement.play().catch(e => console.error("Audio playback failed:", e));
+                setPlayingMessageId(id);
+            } else {
+                console.error("Failed to get audio for the message.");
+                setPlayingMessageId(null);
+            }
+        } catch (error) {
+            console.error("Error in handlePlayAudio:", error);
+            setPlayingMessageId(null);
+        } finally {
+            setAudioLoadingMessageId(null);
+        }
     }
   }, [playingMessageId]);
 
@@ -179,7 +172,6 @@ export default function ChatPage() {
       };
       setMessages((prev) => [...prev, assistantMessage]);
       
-      // Proactively generate and cache audio for the new message
       generateAndCacheAudio(assistantMessage.content);
 
     } catch (error) {
