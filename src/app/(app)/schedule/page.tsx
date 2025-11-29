@@ -199,6 +199,10 @@ export default function SchedulePage() {
         form.setValue("time", "09:00");
         form.setValue("frequency", "daily");
         form.setValue("startDate", undefined);
+        setSelectedSoundUrl(null);
+        const soundInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+        if(soundInput) soundInput.value = "";
+
     }
   }
 
