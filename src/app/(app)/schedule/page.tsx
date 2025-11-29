@@ -89,7 +89,7 @@ export default function SchedulePage() {
   useEffect(() => {
     const interval = setInterval(() => {
         const now = new Date();
-        const currentTime = format(now, "HH:mm");
+        const currentTime = format(now, "HH:mm:ss");
         const currentDayOfWeek = getDay(now);
 
         schedules.forEach(schedule => {
@@ -101,7 +101,7 @@ export default function SchedulePage() {
             scheduleDateOnly.setHours(0, 0, 0, 0);
 
 
-            if (schedule.time === currentTime && today >= scheduleDateOnly) {
+            if (schedule.time + ":00" === currentTime && today >= scheduleDateOnly) {
                 if (schedule.frequency === "daily") {
                     triggerAlert(schedule);
                 } else if (schedule.frequency === "weekly") {
@@ -112,7 +112,7 @@ export default function SchedulePage() {
                 }
             }
         });
-    }, 60000); // Check every minute
+    }, 1000); // Check every second for precision
 
     return () => clearInterval(interval);
   }, [schedules, soundUrls]);
@@ -402,5 +402,7 @@ export default function SchedulePage() {
     </div>
   );
 }
+
+    
 
     
