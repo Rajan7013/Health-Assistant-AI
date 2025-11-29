@@ -46,13 +46,19 @@ const coreFeatures = [
         title: 'Symptom Checker',
         description: 'Analyze your symptoms with our AI-powered tool for insights.',
         href: '/symptom-checker',
-        image: PlaceHolderImages.find(img => img.id === 'symptom-checker')
+        image: PlaceHolderImages.find(img => img.id === 'symptom-checker'),
+        icon: Stethoscope,
+        color: 'bg-indigo-100 dark:bg-indigo-900/30',
+        iconColor: 'text-indigo-600 dark:text-indigo-400',
     },
     {
         title: 'AI Health Assistant',
         description: 'Ask our AI about medicines, diseases, and get health advice.',
         href: '/chat',
-        image: PlaceHolderImages.find(img => img.id === 'ai-chat')
+        image: PlaceHolderImages.find(img => img.id === 'ai-chat'),
+        icon: Bot,
+        color: 'bg-purple-100 dark:bg-purple-900/30',
+        iconColor: 'text-purple-600 dark:text-purple-400',
     },
 ]
 
@@ -122,6 +128,15 @@ export default function DashboardPage() {
             {coreFeatures.map(feature => (
                 <Link href={feature.href} key={feature.title} className="group">
                     <Card className="h-full flex flex-col overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-shadow duration-300">
+                        <div className={`p-6 ${feature.color} flex items-center gap-4`}>
+                           <div className={`p-3 bg-white rounded-full shadow-sm`}>
+                                <feature.icon className={`h-6 w-6 ${feature.iconColor}`} />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold">{feature.title}</h3>
+                                <p className="text-muted-foreground">{feature.description}</p>
+                            </div>
+                        </div>
                         {feature.image && (
                             <div className="relative h-60 w-full">
                                 <Image
@@ -133,10 +148,6 @@ export default function DashboardPage() {
                                 />
                             </div>
                         )}
-                        <div className="p-6">
-                            <h3 className="text-xl font-bold mb-1">{feature.title}</h3>
-                            <p className="text-muted-foreground">{feature.description}</p>
-                        </div>
                     </Card>
                 </Link>
             ))}
