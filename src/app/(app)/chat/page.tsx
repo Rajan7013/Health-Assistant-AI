@@ -71,7 +71,6 @@ export default function ChatPage() {
   
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [audioLoadingMessageId, setAudioLoadingMessageId] = useState<string | null>(null);
-
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -89,13 +88,16 @@ export default function ChatPage() {
     }
     
     try {
+      setAudioLoadingMessageId(text);
       const result = await textToSpeech(text);
-      if (result.audioDataUri) {
+      if (result && result.audioDataUri) {
         audioCache.set(text, result.audioDataUri);
         return result.audioDataUri;
       }
     } catch (error) {
       console.error("Error generating audio:", error);
+    } finally {
+        setAudioLoadingMessageId(null);
     }
     
     return null;
@@ -123,22 +125,22 @@ export default function ChatPage() {
     try {
       const audioUrl = await getAudioForMessage(content);
   
-      if (audioUrl && audioElement) {
+      if (audioUrl) {
         audioElement.src = audioUrl;
         audioElement.play().catch(e => {
             console.error("Audio playback error:", e);
-            setPlayingMessageId(null); // Reset on playback error
+            setPlayingMessageId(null);
         });
         setPlayingMessageId(id);
       } else {
         console.error("Failed to get audio for the message.");
-        setPlayingMessageId(null); // Ensure we don't get stuck in a playing state
+        setPlayingMessageId(null);
       }
     } catch (error) {
       console.error("Error in handlePlayAudio:", error);
-      setPlayingMessageId(null); // Reset on any error
+      setPlayingMessageId(null);
     } finally {
-      setAudioLoadingMessageId(null); // Always stop loading
+      setAudioLoadingMessageId(null);
     }
   }, [playingMessageId, getAudioForMessage]);
 
@@ -148,8 +150,6 @@ export default function ChatPage() {
   };
   
   const handleAudioPause = () => {
-    // This event can fire when switching sources, so we only want to clear
-    // the playing ID if the audio was *actually* paused by the user or ended.
     if (audioRef.current && audioRef.current.paused) {
       setPlayingMessageId(null);
     }
@@ -326,5 +326,3 @@ export default function ChatPage() {
     </div>
   );
 }
-
-    
