@@ -10,14 +10,9 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { ArrowRight, Bot, BookHeart, CalendarClock, History, Pill, Stethoscope, BellRing, Loader2 } from 'lucide-react';
+import { ArrowRight, Bot, BookHeart, CalendarClock, History, Pill, Stethoscope } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useUser } from '@/firebase/auth/use-user';
-import { useFirestore } from '@/firebase';
-import { useState, useEffect, useMemo } from 'react';
-import { getSchedules, type ScheduleWithId } from '@/firebase/firestore/schedules';
-import { format, formatDistanceToNow, isToday, isFuture, getDay } from 'date-fns';
 
 const heroImage = PlaceHolderImages.find(img => img.id === 'hero');
 
@@ -58,136 +53,31 @@ const coreFeatures = [
         iconColor: 'text-purple-600 dark:text-purple-400',
         shadowColor: 'hover:shadow-purple-500/30',
     },
+    {
+        title: 'Symptom Analyzer',
+        description: 'Describe your symptoms to get an AI-powered report.',
+        href: '/symptom-checker',
+        icon: Stethoscope,
+        color: 'bg-green-100 dark:bg-green-900/30',
+        iconColor: 'text-green-600 dark:text-green-400',
+        shadowColor: 'hover:shadow-green-500/30',
+    },
+    {
+        title: 'Disease Library',
+        description: 'Learn about various health conditions and treatments.',
+        href: '/diseases',
+        icon: BookHeart,
+        color: 'bg-sky-100 dark:bg-sky-900/30',
+        iconColor: 'text-sky-600 dark:text-sky-400',
+        shadowColor: 'hover:shadow-sky-500/30',
+    },
 ]
-
-const getNextReminder = (schedules: ScheduleWithId[]): ScheduleWithId | null => {
-    if (!schedules.length) return null;
-
-    const now = new Date();
-    let upcomingReminders: { reminder: ScheduleWithId, date: Date }[] = [];
-
-    schedules.forEach(schedule => {
-        const [hours, minutes] = schedule.time.split(':').map(Number);
-        
-        // Check for today
-        let reminderDateTime = new Date();
-        reminderDateTime.setHours(hours, minutes, 0, 0);
-        if (schedule.frequency === 'daily' && reminderDateTime > now) {
-            upcomingReminders.push({ reminder: schedule, date: reminderDateTime });
-        } else if (schedule.frequency === 'weekly' && getDay(reminderDateTime) === getDay(new Date(schedule.startDate)) && reminderDateTime > now) {
-             upcomingReminders.push({ reminder: schedule, date: reminderDateTime });
-        }
-
-        // Check for future days (up to 7 days ahead)
-        for (let i = 1; i <= 7; i++) {
-            let futureDate = new Date(now);
-            futureDate.setDate(now.getDate() + i);
-            futureDate.setHours(hours, minutes, 0, 0);
-
-            if (schedule.frequency === 'daily') {
-                upcomingReminders.push({ reminder: schedule, date: futureDate });
-                break; 
-            } else if (schedule.frequency === 'weekly' && getDay(futureDate) === getDay(new Date(schedule.startDate))) {
-                upcomingReminders.push({ reminder: schedule, date: futureDate });
-                break;
-            }
-        }
-    });
-    
-    if (upcomingReminders.length === 0) return null;
-    
-    upcomingReminders.sort((a, b) => a.date.getTime() - b.date.getTime());
-    
-    return upcomingReminders[0].reminder;
-};
-
-const UpcomingReminderCard = () => {
-    const { user, loading: userLoading } = useUser();
-    const firestore = useFirestore();
-    const [schedules, setSchedules] = useState<ScheduleWithId[]>([]);
-    const [loadingSchedules, setLoadingSchedules] = useState(true);
-
-    useEffect(() => {
-        if (!user || !firestore) return;
-        setLoadingSchedules(true);
-        const unsubscribe = getSchedules(firestore, user.uid, (newSchedules) => {
-            setSchedules(newSchedules);
-            setLoadingSchedules(false);
-        });
-        return () => unsubscribe();
-    }, [user, firestore]);
-
-    const nextReminder = useMemo(() => getNextReminder(schedules), [schedules]);
-
-    if (userLoading || loadingSchedules) {
-        return (
-            <Card className="rounded-2xl shadow-lg">
-                <CardContent className="p-6 flex items-center justify-center h-48">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </CardContent>
-            </Card>
-        );
-    }
-    
-    if (!nextReminder) {
-         return (
-            <Card className="rounded-2xl shadow-lg bg-secondary">
-                <CardHeader>
-                    <CardTitle>No Upcoming Reminders</CardTitle>
-                    <CardDescription>Your medication schedule is clear for now.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button asChild>
-                        <Link href="/schedule">
-                           <CalendarClock className="mr-2 h-4 w-4" />
-                            Set a New Reminder
-                        </Link>
-                    </Button>
-                </CardContent>
-            </Card>
-        );
-    }
-
-    const reminderDate = new Date();
-    const [hours, minutes] = nextReminder.time.split(':').map(Number);
-    reminderDate.setHours(hours, minutes, 0, 0);
-
-    const timeText = isToday(reminderDate) ? `Today at ${format(reminderDate, 'p')}` : format(reminderDate, 'p');
-
-    return (
-        <Card className="rounded-2xl shadow-xl border-2 border-primary/50 bg-gradient-to-br from-primary/10 to-background">
-            <CardHeader>
-                <div className="flex items-center gap-3">
-                     <BellRing className="h-6 w-6 text-primary" />
-                    <CardTitle className="text-primary text-2xl font-bold">Upcoming Reminder</CardTitle>
-                </div>
-                <CardDescription>
-                    {`Next up: ${formatDistanceToNow(reminderDate, { addSuffix: true })}`}
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="bg-background/70 p-4 rounded-lg">
-                    <p className="text-lg font-bold text-foreground">{nextReminder.medicineName}</p>
-                    <p className="text-lg font-semibold text-primary">{timeText}</p>
-                    <p className="text-sm text-muted-foreground capitalize">{nextReminder.frequency} medication</p>
-                </div>
-                <Button asChild variant="outline">
-                    <Link href="/schedule">
-                        View Full Schedule <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                </Button>
-            </CardContent>
-        </Card>
-    );
-};
-
 
 export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-            <UpcomingReminderCard />
             <Card className="overflow-hidden relative rounded-2xl shadow-lg h-80 lg:h-auto">
                 <div className="h-full w-full">
                     {heroImage && (
@@ -214,17 +104,40 @@ export default function DashboardPage() {
                                 Ask Our AI
                             </Link>
                         </Button>
+                        <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10" asChild>
+                            <Link href="/schedule">
+                                View Schedule <ArrowRight className="ml-2 h-5 w-5" />
+                            </Link>
+                        </Button>
                     </div>
                   </div>
                 </div>
             </Card>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {coreFeatures.map(feature => (
+                     <Link href={feature.href} key={feature.title}>
+                        <div className={`p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex items-center gap-4 ${feature.color} ${feature.shadowColor}`}>
+                            <div className="p-4 bg-white rounded-full shadow-md">
+                                <feature.icon className={`h-8 w-8 ${feature.iconColor}`} />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-foreground">{feature.title}</h3>
+                                <p className="text-muted-foreground mt-1">{feature.description}</p>
+                            </div>
+                        </div>
+                    </Link>
+                ))}
+            </div>
         </div>
 
 
-        <div className="lg:col-span-1 space-y-8">
+        <div className="lg:col-span-1">
             <Card className="rounded-2xl shadow-lg bg-secondary border-2 border-blue-500/30">
-                <CardContent className="p-6">
-                    <h2 className="text-xl font-bold mb-4">Quick Access</h2>
+                <CardHeader>
+                    <CardTitle>Quick Access</CardTitle>
+                    <CardDescription>Your most used features, right at your fingertips.</CardDescription>
+                </CardHeader>
+                <CardContent>
                     <div className="grid grid-cols-2 gap-4">
                         {quickAccessItems.map(item => (
                             <Link href={item.href} key={item.title}>
@@ -239,25 +152,9 @@ export default function DashboardPage() {
                     </div>
                 </CardContent>
             </Card>
-             <h2 className="text-2xl font-bold">Explore Our Core Feature</h2>
-                {coreFeatures.map(feature => (
-                     <Link href={feature.href} key={feature.title}>
-                        <div className={`p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col text-center items-center gap-4 ${feature.color} ${feature.shadowColor}`}>
-                            <div className="p-4 bg-white rounded-full shadow-md">
-                                <feature.icon className={`h-8 w-8 ${feature.iconColor}`} />
-                            </div>
-                            <div>
-                                <h3 className="text-xl font-bold text-foreground">{feature.title}</h3>
-                                <p className="text-muted-foreground mt-1">{feature.description}</p>
-                            </div>
-                        </div>
-                    </Link>
-                ))}
         </div>
       </div>
 
     </div>
   );
 }
-
-    
