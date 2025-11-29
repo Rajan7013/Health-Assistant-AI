@@ -146,22 +146,7 @@ export default function AppLayout({
           </div>
           
           <div className="flex items-center gap-2">
-              <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white rounded-full">
-                          <Settings className="h-5 w-5" />
-                      </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-60">
-                      <DropdownMenuLabel>Appearance</DropdownMenuLabel>
-                       <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                            <div className="flex items-center justify-between w-full">
-                                <span>Theme</span>
-                                <ThemeToggle />
-                            </div>
-                       </DropdownMenuItem>
-                  </DropdownMenuContent>
-              </DropdownMenu>
+              <ThemeToggle />
 
               {(!clientLoaded || loading) ? (
                   <Skeleton className="h-10 w-10 rounded-full" />
