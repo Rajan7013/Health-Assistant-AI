@@ -29,6 +29,10 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.75rem;
+
+    --header-gradient: linear-gradient(90deg, #462564 0%, #302b63 25%, #24243e 50%, #c13a3a 100%);
+    --profile-gradient: linear-gradient(90deg, #f7b733 0%, #fc4a1a 100%);
+
   }
  
   .dark {
@@ -56,6 +60,9 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+
+    --header-gradient: linear-gradient(90deg, #1e133a 0%, #2c2a4a 25%, #1a1a2e 50%, #8b2a2a 100%);
+    --profile-gradient: linear-gradient(90deg, #f7b733 0%, #fc4a1a 100%);
   }
 }
  
@@ -65,9 +72,6 @@
   }
   body {
     @apply bg-background text-foreground;
-  }
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-headline;
   }
 }
 
