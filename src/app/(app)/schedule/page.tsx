@@ -30,7 +30,7 @@ import { useState, useEffect, useRef } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { useUser } from "@/firebase/auth/use-user"
 import { useFirestore } from "@/firebase"
-import { addSchedule, deleteSchedule as deleteScheduleFromDB, getSchedules } from "@/firebase/firestore/schedules"
+import { addSchedule, deleteSchedule as deleteScheduleFromDB, getSchedules, type ScheduleWithId } from "@/firebase/firestore/schedules"
 
 const MAX_FILE_SIZE = 5000000; // 5MB
 const ACCEPTED_AUDIO_TYPES = ["audio/mpeg", "audio/wav", "audio/ogg", "audio/mp3"];
@@ -48,16 +48,13 @@ const formSchema = z.object({
   }),
   sound: z
     .any()
-    .refine((files) => files?.length == 1, "Audio file is required.")
-    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
+    .refine((files) => files?.length == 1 ? files?.[0]?.size <= MAX_FILE_SIZE : true, `Max file size is 5MB.`)
     .refine(
-      (files) => ACCEPTED_AUDIO_TYPES.includes(files?.[0]?.type),
+      (files) => files?.length == 1 ? ACCEPTED_AUDIO_TYPES.includes(files?.[0]?.type) : true,
       ".mp3, .wav and .ogg files are accepted."
     )
     .optional(),
 })
-
-export type Schedule = z.infer<typeof formSchema> & { id: string; soundUrl?: string; };
 
 const cardColors = [
     "bg-sky-100 dark:bg-sky-900/30",
@@ -76,7 +73,8 @@ const iconColors = [
 ]
 
 export default function SchedulePage() {
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [schedules, setSchedules] = useState<ScheduleWithId[]>([]);
+  const [soundUrls, setSoundUrls] = useState<Record<string, string>>({});
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
@@ -86,8 +84,7 @@ export default function SchedulePage() {
     if (!user || !firestore) return;
 
     const unsubscribe = getSchedules(firestore, user.uid, (newSchedules) => {
-        // This real-time listener will keep our state in sync with Firestore.
-        setSchedules(newSchedules.map(s => ({ ...s, soundUrl: s.soundUrl || '' })));
+        setSchedules(newSchedules);
     });
 
     return () => unsubscribe();
@@ -101,18 +98,18 @@ export default function SchedulePage() {
 
         schedules.forEach(schedule => {
             const scheduleStartDate = new Date(schedule.startDate);
-            const today = new Date(now); // Create a new Date object for today
-            
-            // Set time to 00:00:00 to compare dates only
-            scheduleStartDate.setHours(0,0,0,0); 
+            const today = new Date();
             today.setHours(0,0,0,0);
+            
+            const scheduleDateOnly = new Date(scheduleStartDate);
+            scheduleDateOnly.setHours(0,0,0,0);
 
-            if (schedule.time === currentTime && today >= scheduleStartDate) {
+
+            if (schedule.time === currentTime && today >= scheduleDateOnly) {
                 if (schedule.frequency === "daily") {
                     triggerAlert(schedule);
                 } else if (schedule.frequency === "weekly") {
-                    // Use the original schedule.startDate to get the correct day of the week
-                    const scheduleStartDayOfWeek = getDay(new Date(schedule.startDate));
+                    const scheduleStartDayOfWeek = getDay(scheduleStartDate);
                     if (scheduleStartDayOfWeek === currentDayOfWeek) {
                         triggerAlert(schedule);
                     }
@@ -124,15 +121,16 @@ export default function SchedulePage() {
     return () => clearInterval(interval);
   }, [schedules]);
 
-  const triggerAlert = (schedule: Schedule) => {
+  const triggerAlert = (schedule: ScheduleWithId) => {
     toast({
         title: "Medication Reminder! 💊",
         description: `It's time to take your ${schedule.medicineName}.`,
     });
     
-    if (schedule.soundUrl) {
+    const soundUrl = soundUrls[schedule.id];
+    if (soundUrl) {
       if (audioRef.current) {
-        audioRef.current.src = schedule.soundUrl;
+        audioRef.current.src = soundUrl;
         audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
       }
     }
@@ -156,11 +154,6 @@ export default function SchedulePage() {
         return;
     }
     
-    let soundUrl = '';
-    if (values.sound && values.sound[0]) {
-        soundUrl = URL.createObjectURL(values.sound[0]);
-    }
-
     const scheduleDataForDb = {
         medicineName: values.medicineName,
         startDate: values.startDate,
@@ -171,10 +164,9 @@ export default function SchedulePage() {
     const newDocId = await addSchedule(firestore, user.uid, scheduleDataForDb);
     
     if (newDocId) {
-        if (soundUrl) {
-            // Because we can't save the blob URL to Firestore, we add it to the local state
-            // after the DB operation is successful.
-             setSchedules(prev => prev.map(s => s.id === newDocId ? {...s, soundUrl} : s));
+        if (values.sound && values.sound[0]) {
+            const soundUrl = URL.createObjectURL(values.sound[0]);
+            setSoundUrls(prev => ({...prev, [newDocId]: soundUrl}));
         }
     
         toast({
@@ -196,6 +188,11 @@ export default function SchedulePage() {
         return;
     }
     deleteScheduleFromDB(firestore, user.uid, id);
+    setSoundUrls(prev => {
+        const newUrls = {...prev};
+        delete newUrls[id];
+        return newUrls;
+    });
     toast({
         title: "Schedule Removed",
         variant: "destructive",
@@ -355,6 +352,7 @@ export default function SchedulePage() {
                             </p>
                         </div>
                         <div className="flex items-center gap-2">
+                            {soundUrls[schedule.id] && <Bell className="h-5 w-5 text-primary" />}
                             <Button variant="ghost" size="icon" className="hover:bg-destructive/10" onClick={() => handleDeleteSchedule(schedule.id)}>
                                 <Trash2 className="h-5 w-5 text-destructive" />
                                 <span className="sr-only">Delete</span>
@@ -373,4 +371,5 @@ export default function SchedulePage() {
     </div>
   );
 }
+
     
