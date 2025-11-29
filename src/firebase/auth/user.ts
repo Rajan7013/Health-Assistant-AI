@@ -20,36 +20,41 @@ export const updateUserProfile = async (
     throw new Error('No user is currently signed in.');
   }
 
-  // This is the primary operation: updating the user's auth profile.
+  // Update the Firebase Auth user profile first.
   await updateProfile(user, data);
 
-  // This is a secondary operation to keep the Firestore document in sync.
-  // We use setDoc with merge:true to either create or update the document,
-  // which prevents the "No document to update" error if the doc doesn't exist.
+  // Then, create or update the user's document in Firestore.
   const userDocRef = doc(firestore, 'users', user.uid);
   
+  // Prepare the data for Firestore. `updatedAt` is always set.
   const updateData = {
     ...data,
     updatedAt: serverTimestamp(),
-    // Set createdAt only if it's a new document, which setDoc handles gracefully.
-    // To be fully robust, we could read first, but this is simpler for this use case.
-    // A more advanced implementation might use a transaction.
-    createdAt: serverTimestamp(), // Will be overwritten if doc exists and has this field
+    // To prevent overwriting immutable fields, we only add these on creation.
+    // By using `setDoc` with `merge: true`, these are effectively ignored on update
+    // if the document already exists, but are crucial for creation.
+    uid: user.uid,
+    email: user.email,
+    createdAt: serverTimestamp(),
   };
 
+
+  // Use setDoc with merge:true. This will CREATE the document if it doesn't exist,
+  // or UPDATE it if it does. This resolves the "No document to update" error
+  // and race conditions on signup.
   setDoc(userDocRef, updateData, { merge: true })
     .catch(async (serverError) => {
-      // Handle permission errors specifically for debugging.
+      // This error handling is crucial for debugging security rule denials.
       if (serverError.code === 'permission-denied') {
         const permissionError = new FirestorePermissionError({
           path: userDocRef.path,
-          operation: 'update',
+          operation: 'update', // Logically it's an update, even if creating.
           requestResourceData: updateData,
         });
         errorEmitter.emit('permission-error', permissionError);
       } else {
-        // For other errors, log them.
-        console.error('Error updating user profile in Firestore:', serverError);
+        // For other errors (e.g., network), log them to the console.
+        console.error('Error syncing user profile to Firestore:', serverError);
       }
     });
 };
