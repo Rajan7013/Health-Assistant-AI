@@ -8,15 +8,15 @@
     },
     {
       "id": "symptom-checker",
-      "description": "A person thinking about their symptoms",
-      "imageUrl": "https://images.unsplash.com/photo-1585559604908-0cb329093f50?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxzeW1wdG9tcyUyMHBlcnNvbnxlbnwwfHx8fDE3NjQzNTA0Njh8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "symptoms person"
+      "description": "A doctor reviewing a patient's chart and symptoms on a tablet.",
+      "imageUrl": "https://images.unsplash.com/photo-1622253692010-333f2da60710?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwZGlhZ25vc2lzfGVufDB8fHx8MTc2NDYwOTg4MHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "medical diagnosis"
     },
     {
       "id": "ai-chat",
-      "description": "A chatbot interface on a smartphone",
-      "imageUrl": "https://images.unsplash.com/photo-1757906574561-aaad966c788d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjaGF0JTIwcGhvbmV8ZW58MHx8fHwxNzY0MzUwNDY5fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "chat phone"
+      "description": "A person using their smartphone to chat with an AI assistant.",
+      "imageUrl": "https://images.unsplash.com/photo-1696204221796-722e6b245240?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxhaSUyMGNoYXRib3QlMjBoZWFsdGhjYXJlfGVufDB8fHx8MTc2NDYwOTg4MHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "AI chatbot"
     },
     {
       "id": "medicine-schedule",
