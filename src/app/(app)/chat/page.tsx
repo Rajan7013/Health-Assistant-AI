@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { contextAwareChatbot, type ContextAwareChatbotInput } from '@/ai/flows/context-aware-chatbot';
-import { textToSpeech } from '@/ai/flows/text-to-speech';
+import { textToSpeechStream } from '@/ai/flows/text-to-speech-stream';
 import { Bot, Send, User, Loader2, Sparkles, Volume2, Pause } from 'lucide-react';
 
 type MessageIntent = 'MEDICINE' | 'SYMPTOM' | 'GENERAL' | 'EMERGENCY';
@@ -20,9 +20,6 @@ interface Message {
   content: string;
   intent?: MessageIntent;
 }
-
-// Simple in-memory cache for audio files
-const audioCache = new Map<string, string>();
 
 const SmartChips = ({ intent, onSelect }: { intent: MessageIntent, onSelect: (text: string) => void }) => {
   let chips: string[] = [];
@@ -81,34 +78,7 @@ export default function ChatPage() {
       });
     }
   }, [messages]);
-
-  const getAudioForMessage = useCallback(async (text: string): Promise<string | null> => {
-    // Check cache first
-    if (audioCache.has(text)) {
-      console.log('TTS: Using cached audio');
-      return audioCache.get(text)!;
-    }
-    
-    try {
-      console.log('TTS: Requesting audio generation...');
-      const result = await textToSpeech(text);
-      
-      if (result && result.success && result.audioDataUri) {
-        console.log('TTS: Audio generated successfully');
-        audioCache.set(text, result.audioDataUri);
-        return result.audioDataUri;
-      } else {
-        const errorMsg = result?.error || 'Unknown error';
-        console.error("TTS: Failed to generate audio:", errorMsg);
-        throw new Error(errorMsg);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error("TTS: Error generating audio:", errorMessage);
-      throw error;
-    }
-  }, []);
-
+  
   const handlePlayAudio = useCallback(async (message: Message) => {
     const { id, content } = message;
     const audioElement = audioRef.current;
@@ -118,46 +88,63 @@ export default function ChatPage() {
       return;
     }
   
-    // If clicking the currently playing message, pause it
     if (playingMessageId === id) {
       audioElement.pause();
       setPlayingMessageId(null);
       return;
     }
   
-    // Stop any currently playing audio before starting a new one
     if (playingMessageId) {
       audioElement.pause();
+      URL.revokeObjectURL(audioElement.src);
     }
   
     setAudioLoadingMessageId(id);
     setAudioError(null);
-    
-    try {
-      const audioUrl = await getAudioForMessage(content);
   
-      if (audioUrl) {
-        audioElement.src = audioUrl;
-        await audioElement.play();
-        setPlayingMessageId(id);
-        console.log('TTS: Audio playback started');
-      }
+    try {
+      const mediaSource = new MediaSource();
+      audioElement.src = URL.createObjectURL(mediaSource);
+  
+      mediaSource.addEventListener('sourceopen', async () => {
+        try {
+          const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+          const stream = textToSpeechStream(content);
+  
+          for await (const chunk of stream) {
+            sourceBuffer.appendBuffer(chunk);
+          }
+        } catch (e) {
+          console.error('Error during audio stream processing:', e);
+          setAudioError('Failed to process audio stream.');
+          if (mediaSource.readyState === 'open') {
+            mediaSource.endOfStream();
+          }
+        } finally {
+          if (mediaSource.readyState === 'open' && !mediaSource.sourceBuffers[0]?.updating) {
+             mediaSource.endOfStream();
+          }
+        }
+      });
+  
+      await audioElement.play();
+      setPlayingMessageId(id);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate audio';
       console.error("Error in handlePlayAudio:", errorMessage);
       setAudioError(errorMessage);
       setPlayingMessageId(null);
-      
-      // Clear error after 3 seconds
       setTimeout(() => setAudioError(null), 3000);
     } finally {
       setAudioLoadingMessageId(null);
     }
-  }, [playingMessageId, getAudioForMessage]);
+  }, [playingMessageId]);
 
   const handleAudioEnded = () => {
-    console.log('TTS: Audio playback ended');
     setPlayingMessageId(null);
+    if (audioRef.current) {
+      URL.revokeObjectURL(audioRef.current.src);
+    }
   };
   
   const handleAudioPause = () => {
