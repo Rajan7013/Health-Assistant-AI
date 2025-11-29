@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { contextAwareChatbot, type ContextAwareChatbotInput } from '@/ai/flows/context-aware-chatbot';
-import { textToSpeech, type TextToSpeechOutput } from '@/ai/flows/text-to-speech';
+import { textToSpeech } from '@/ai/flows/text-to-speech';
 import { Bot, Send, User, Loader2, Sparkles, Volume2, Pause } from 'lucide-react';
 
 type MessageIntent = 'MEDICINE' | 'SYMPTOM' | 'GENERAL' | 'EMERGENCY';
@@ -89,7 +89,7 @@ export default function ChatPage() {
     }
     
     try {
-      const result: TextToSpeechOutput = await textToSpeech(text);
+      const result = await textToSpeech(text);
       if (result.audioDataUri) {
         audioCache.set(text, result.audioDataUri);
         return result.audioDataUri;
@@ -101,42 +101,44 @@ export default function ChatPage() {
     return null;
   }, []);
 
-
   const handlePlayAudio = useCallback(async (message: Message) => {
     const { id, content } = message;
     const audioElement = audioRef.current;
-
+  
     if (!audioElement) return;
-
+  
     // If clicking the currently playing message, pause it.
     if (playingMessageId === id) {
       audioElement.pause();
       setPlayingMessageId(null);
       return;
     }
-    
-    // If another message is playing, pause it first.
-    if (playingMessageId && playingMessageId !== id) {
-       audioElement.pause();
+  
+    // Stop any currently playing audio before starting a new one
+    if (playingMessageId) {
+      audioElement.pause();
     }
-    
+  
     setAudioLoadingMessageId(id);
-    
     try {
       const audioUrl = await getAudioForMessage(content);
-      
-      setAudioLoadingMessageId(null);
-
+  
       if (audioUrl && audioElement) {
         audioElement.src = audioUrl;
-        audioElement.play().catch(e => console.error("Audio playback error:", e));
+        audioElement.play().catch(e => {
+            console.error("Audio playback error:", e);
+            setPlayingMessageId(null); // Reset on playback error
+        });
         setPlayingMessageId(id);
       } else {
         console.error("Failed to get audio for the message.");
+        setPlayingMessageId(null); // Ensure we don't get stuck in a playing state
       }
     } catch (error) {
-        console.error("Error in handlePlayAudio:", error);
-        setAudioLoadingMessageId(null);
+      console.error("Error in handlePlayAudio:", error);
+      setPlayingMessageId(null); // Reset on any error
+    } finally {
+      setAudioLoadingMessageId(null); // Always stop loading
     }
   }, [playingMessageId, getAudioForMessage]);
 
@@ -146,8 +148,8 @@ export default function ChatPage() {
   };
   
   const handleAudioPause = () => {
-    // Only clear the playing ID if it was genuinely paused by the user or ended,
-    // not just because the source changed.
+    // This event can fire when switching sources, so we only want to clear
+    // the playing ID if the audio was *actually* paused by the user or ended.
     if (audioRef.current && audioRef.current.paused) {
       setPlayingMessageId(null);
     }
@@ -324,3 +326,5 @@ export default function ChatPage() {
     </div>
   );
 }
+
+    
