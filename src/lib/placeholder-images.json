@@ -59,6 +59,30 @@
       "description": "Abstract medical background",
       "imageUrl": "https://images.unsplash.com/photo-1707216171962-9f1514c0bda6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxtZWRpY2FsJTIwYWJzdHJhY3R8ZW58MHx8fHwxNzY0MzUwNDY5fDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "medical abstract"
+    },
+    {
+      "id": "migraine",
+      "description": "A person suffering from a headache.",
+      "imageUrl": "https://images.unsplash.com/photo-1594611593740-9a67455d6888?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxoZWFkYWNoZSUyMHNpbGhvdWV0dGV8ZW58MHx8fHwxNzY0ODg5MzUxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "headache silhouette"
+    },
+    {
+      "id": "gerd",
+      "description": "An anatomical illustration of the esophagus and stomach.",
+      "imageUrl": "https://images.unsplash.com/photo-1619623887019-33a76c878eda?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxoZWFydGJ1cm4lMjBhbmF0b215fGVufDB8fHx8MTc2NDg4OTM1MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "heartburn anatomy"
+    },
+    {
+      "id": "anxiety",
+      "description": "A person looking worried and thoughtful.",
+      "imageUrl": "https://images.unsplash.com/photo-1620492167424-459f3d9f3812?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxhbnhpb3VzJTIwcGVyc29ufGVufDB8fHx8MTc2NDg4OTM1MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "anxious person"
+    },
+    {
+      "id": "allergies",
+      "description": "A field of flowers with pollen in the air.",
+      "imageUrl": "https://images.unsplash.com/photo-1522927230193-a75b651034d4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwb2xsZW4lMjBhbGxlcmd5fGVufDB8fHx8MTc2NDg4OTM1MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "pollen allergy"
     }
   ]
 }
