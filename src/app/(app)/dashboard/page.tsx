@@ -2,6 +2,8 @@ import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
+  CardHeader,
+  CardTitle,
 } from '@/components/ui/card';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { ArrowRight, Bot, BookHeart, CalendarClock, History, Pill, Stethoscope } from 'lucide-react';
@@ -128,26 +130,28 @@ export default function DashboardPage() {
             {coreFeatures.map(feature => (
                 <Link href={feature.href} key={feature.title} className="group">
                     <Card className="h-full flex flex-col overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-shadow duration-300">
-                        <div className={`p-6 ${feature.color} flex items-center gap-4`}>
+                        <CardHeader className={`p-6 ${feature.color} flex items-center gap-4`}>
                            <div className={`p-3 bg-white rounded-full shadow-sm`}>
                                 <feature.icon className={`h-6 w-6 ${feature.iconColor}`} />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold">{feature.title}</h3>
+                                <CardTitle className="text-xl font-bold">{feature.title}</CardTitle>
                                 <p className="text-muted-foreground">{feature.description}</p>
                             </div>
-                        </div>
-                        {feature.image && (
-                            <div className="relative h-60 w-full">
-                                <Image
-                                    src={feature.image.imageUrl}
-                                    alt={feature.image.description}
-                                    data-ai-hint={feature.image.imageHint}
-                                    fill
-                                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                                />
-                            </div>
-                        )}
+                        </CardHeader>
+                        <CardContent className="p-0 flex-1">
+                            {feature.image && (
+                                <div className="relative h-60 w-full">
+                                    <Image
+                                        src={feature.image.imageUrl}
+                                        alt={feature.image.description}
+                                        data-ai-hint={feature.image.imageHint}
+                                        fill
+                                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                    />
+                                </div>
+                            )}
+                        </CardContent>
                     </Card>
                 </Link>
             ))}
