@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -8,9 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { contextAwareChatbot, ContextAwareChatbotInput } from '@/ai/flows/context-aware-chatbot';
+import { contextAwareChatbot, type ContextAwareChatbotInput } from '@/ai/flows/context-aware-chatbot';
 import { textToSpeech } from '@/ai/flows/text-to-speech';
-import { Bot, Send, User, Loader2, Sparkles, Volume2, Pause, VolumeX } from 'lucide-react';
+import { Bot, Send, User, Loader2, Sparkles, Volume2, Pause } from 'lucide-react';
 
 type MessageIntent = 'MEDICINE' | 'SYMPTOM' | 'GENERAL' | 'EMERGENCY';
 

@@ -1,23 +1,22 @@
+
 'use server';
 /**
  * @fileOverview A Text-to-Speech (TTS) service that converts text into audible speech.
  *
  * - textToSpeech - A function that takes a string of text and returns a data URI for the audio.
- * - TextToSpeechInputSchema - The input type for the textToSpeech function.
- * - TextToSpeechOutputSchema - The return type for the textToSpeech function.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import wav from 'wav';
 
-export const TextToSpeechInputSchema = z.string();
-export type TextToSpeechInput = z.infer<typeof TextToSpeechInputSchema>;
+const TextToSpeechInputSchema = z.string();
+type TextToSpeechInput = z.infer<typeof TextToSpeechInputSchema>;
 
-export const TextToSpeechOutputSchema = z.object({
+const TextToSpeechOutputSchema = z.object({
   audioDataUri: z.string().describe('The base64 encoded data URI of the WAV audio file.'),
 });
-export type TextToSpeechOutput = z.infer<typeof TextToSpeechOutputSchema>;
+type TextToSpeechOutput = z.infer<typeof TextToSpeechOutputSchema>;
 
 export async function textToSpeech(input: TextToSpeechInput): Promise<TextToSpeechOutput> {
   return textToSpeechFlow(input);
