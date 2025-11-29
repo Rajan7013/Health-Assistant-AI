@@ -104,6 +104,7 @@ export default function ChatPage() {
     setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, isAudioLoading: true } : msg));
     try {
       const { audioDataUri } = await textToSpeech(content);
+      // Only cache if generation was successful
       if (audioDataUri) {
         audioCache.current.set(content, audioDataUri);
       }
@@ -117,42 +118,50 @@ export default function ChatPage() {
   const handlePlayAudio = useCallback(async (message: Message) => {
     const { id, content } = message;
 
+    // If this message is already playing, pause it.
     if (playingMessageId === id && audioRef.current) {
       audioRef.current.pause();
-      handleAudioEnded(); // Manually trigger end state
+      setPlayingMessageId(null); // Clear the playing state
       return;
     }
 
+    // Start playing a new message
     setPlayingMessageId(id);
 
+    // If audio is already in cache, play it directly
     if (audioCache.current.has(content)) {
       const audioDataUri = audioCache.current.get(content);
       if (audioRef.current && audioDataUri) {
         audioRef.current.src = audioDataUri;
         audioRef.current.play().catch(console.error);
+      } else {
+         setPlayingMessageId(null); // Something wrong with cached data
       }
-    } else {
-      // If not in cache, generate it on-demand
-      setMessages(prev => prev.map(msg => msg.id === id ? { ...msg, isAudioLoading: true } : msg));
-      try {
-        const { audioDataUri } = await textToSpeech(content);
-        if (audioDataUri) {
-          audioCache.current.set(content, audioDataUri);
-          if (audioRef.current) {
-            audioRef.current.src = audioDataUri;
-            audioRef.current.play().catch(console.error);
-          }
-        } else {
-            setPlayingMessageId(null); // Generation failed
-        }
-      } catch (error) {
-        console.error('Error generating audio on-demand:', error);
-        setPlayingMessageId(null);
-      } finally {
-        setMessages(prev => prev.map(msg => msg.id === id ? { ...msg, isAudioLoading: false } : msg));
-      }
+      return;
     }
-  }, [playingMessageId, handleAudioEnded]);
+
+    // If not in cache, generate it on-demand
+    setMessages(prev => prev.map(msg => msg.id === id ? { ...msg, isAudioLoading: true } : msg));
+    try {
+      const { audioDataUri } = await textToSpeech(content);
+      // Only play and cache if generation was successful
+      if (audioDataUri) {
+        audioCache.current.set(content, audioDataUri);
+        if (audioRef.current) {
+          audioRef.current.src = audioDataUri;
+          audioRef.current.play().catch(console.error);
+        }
+      } else {
+        // If generation failed, stop the loading state
+        setPlayingMessageId(null);
+      }
+    } catch (error) {
+      console.error('Error generating audio on-demand:', error);
+      setPlayingMessageId(null); // Stop loading on error
+    } finally {
+      setMessages(prev => prev.map(msg => msg.id === id ? { ...msg, isAudioLoading: false } : msg));
+    }
+  }, [playingMessageId]);
 
   const handleSendMessage = useCallback(async (messageContent: string) => {
     if (!messageContent.trim() || isLoading) return;
@@ -329,3 +338,5 @@ export default function ChatPage() {
     </div>
   );
 }
+
+    
