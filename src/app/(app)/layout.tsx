@@ -76,20 +76,22 @@ const navItems = [
   },
 ];
 
-const AppNav = ({ pathname }: { pathname: string | null }) => (
-  <nav className="flex flex-col gap-2 px-4">
+const AppNav = ({ pathname, isMobile = false }: { pathname: string | null, isMobile?: boolean }) => (
+  <nav className={cn("flex gap-2", isMobile ? "flex-col px-4" : "items-center")}>
     {navItems.map((item) => (
        <Link href={item.href} key={item.label}>
         <Button
           variant="ghost"
           className={cn(
-            "w-full justify-start gap-3 rounded-lg px-3 py-6 text-base font-semibold",
+            "w-full justify-start gap-3 rounded-lg text-base font-semibold",
+            isMobile ? "px-3 py-6" : "px-4 py-2",
             pathname === item.href
                 ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+            !isMobile && item.hoverColor
           )}
         >
-          <item.icon className="h-5 w-5" />
+          <item.icon className={cn("h-5 w-5", item.color)} />
           {item.label}
         </Button>
       </Link>
@@ -122,134 +124,95 @@ export default function AppLayout({
   };
   
   return (
-    <div className="flex min-h-screen w-full">
-        <aside className="hidden lg:block w-72 flex-col border-r bg-background/30 backdrop-blur-lg">
-            <div className="flex h-full max-h-screen flex-col gap-4">
-                <div className="flex h-20 items-center border-b px-6">
-                    <Link href="/" className="flex items-center gap-3 font-semibold text-lg">
-                        <Logo className="h-8 w-8 text-primary" />
-                        <span className="font-bold">HealthMind AI</span>
-                    </Link>
-                </div>
-                <div className="flex-1 overflow-auto py-2">
-                    <AppNav pathname={clientLoaded ? pathname : null} />
-                </div>
-                <div className="mt-auto p-4 border-t">
-                     {(!clientLoaded || loading) ? (
-                        <div className="flex items-center gap-3">
-                           <Skeleton className="h-10 w-10 rounded-full" />
-                           <div className="flex-1 space-y-1">
-                             <Skeleton className="h-4 w-24" />
-                             <Skeleton className="h-3 w-32" />
-                           </div>
-                        </div>
-                    ) : user ? (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="w-full justify-start gap-3 h-auto p-2">
-                                     <Avatar className="h-10 w-10 border-2 border-primary/50">
-                                        <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? 'User'} />
-                                        <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
-                                    </Avatar>
-                                    <div className="text-left">
-                                        <p className="font-semibold text-base">{user.displayName || 'User'}</p>
-                                        <p className="text-xs text-muted-foreground">{user.email}</p>
-                                    </div>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-64">
-                                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem asChild>
-                                    <Link href="/settings">Profile</Link>
-                                </DropdownMenuItem>
-                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={handleLogout}>
-                                    <LogOut className="mr-2 h-4 w-4" />
-                                    Logout
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    ) : (
-                         <Button asChild className="w-full" variant="outline">
-                            <Link href="/login">Login</Link>
-                        </Button>
-                    )}
-                </div>
-            </div>
-        </aside>
-        <div className="flex flex-col flex-1">
-            <header className="sticky top-0 z-10 flex h-20 items-center gap-4 border-b bg-background/30 backdrop-blur-lg px-4 md:px-6 lg:hidden">
-                <Sheet>
-                    <SheetTrigger asChild>
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        className="shrink-0 lg:hidden"
-                    >
-                        <Menu className="h-5 w-5" />
-                        <span className="sr-only">Toggle navigation menu</span>
-                    </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="flex flex-col p-0">
-                         <div className="flex h-20 items-center border-b px-6">
-                            <Link href="/" className="flex items-center gap-3 font-semibold text-lg">
-                                <Logo className="h-8 w-8 text-primary" />
-                                <span className="font-bold">HealthMind AI</span>
-                            </Link>
-                        </div>
-                        <div className="flex-1 overflow-auto py-2">
-                          <AppNav pathname={clientLoaded ? pathname : null} />
-                        </div>
-                         <div className="mt-auto p-4 border-t">
-                            {user && (
-                                <Button onClick={handleLogout} variant="ghost" className="w-full justify-start gap-2">
-                                     <LogOut className="mr-2 h-4 w-4" />
-                                    Logout
-                                </Button>
-                            )}
-                         </div>
-                    </SheetContent>
-                </Sheet>
+    <div className="flex min-h-screen w-full flex-col">
+       <header className="sticky top-0 z-30 flex h-20 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-lg md:px-6">
+          <div className="flex h-full items-center">
+              <Link href="/" className="flex items-center gap-3 font-semibold text-lg">
+                  <Logo className="h-8 w-8 text-primary" />
+                  <span className="font-bold">HealthMind AI</span>
+              </Link>
+          </div>
 
-                <div className="flex-1 text-center">
-                    <Link href="/" className="flex items-center gap-3 font-semibold text-lg justify-center">
-                        <Logo className="h-8 w-8 text-primary" />
-                    </Link>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                    <ThemeToggle />
-                     {user && (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                    <Avatar className="h-8 w-8">
-                                        <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? 'User'} />
-                                        <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
-                                    </Avatar>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>{user.displayName || 'My Account'}</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem asChild>
-                                    <Link href="/settings">Settings</Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={handleLogout}>
-                                <LogOut className="mr-2 h-4 w-4" />
+          <div className="flex-1 flex justify-center">
+              <div className="hidden lg:flex">
+                <AppNav pathname={clientLoaded ? pathname : null} />
+              </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+              <ThemeToggle />
+              {(!clientLoaded || loading) ? (
+                  <Skeleton className="h-10 w-10 rounded-full" />
+              ) : user ? (
+                  <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                           <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                               <Avatar className="h-10 w-10 border-2 border-primary/50">
+                                  <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? 'User'} />
+                                  <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
+                              </Avatar>
+                          </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-64">
+                          <DropdownMenuLabel>
+                            <p className="font-semibold">{user.displayName || 'User'}</p>
+                            <p className="text-xs text-muted-foreground font-normal">{user.email}</p>
+                          </DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem asChild>
+                              <Link href="/settings">Profile</Link>
+                          </DropdownMenuItem>
+                           <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={handleLogout}>
+                              <LogOut className="mr-2 h-4 w-4" />
+                              Logout
+                          </DropdownMenuItem>
+                      </DropdownMenuContent>
+                  </DropdownMenu>
+              ) : (
+                   <Button asChild variant="outline">
+                      <Link href="/login">Login</Link>
+                  </Button>
+              )}
+          </div>
+
+          <div className="lg:hidden">
+            <Sheet>
+                <SheetTrigger asChild>
+                <Button
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                >
+                    <Menu className="h-5 w-5" />
+                    <span className="sr-only">Toggle navigation menu</span>
+                </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="flex flex-col p-0">
+                      <div className="flex h-20 items-center border-b px-6">
+                        <Link href="/" className="flex items-center gap-3 font-semibold text-lg">
+                            <Logo className="h-8 w-8 text-primary" />
+                            <span className="font-bold">HealthMind AI</span>
+                        </Link>
+                    </div>
+                    <div className="flex-1 overflow-auto py-2">
+                      <AppNav pathname={clientLoaded ? pathname : null} isMobile={true} />
+                    </div>
+                      <div className="mt-auto p-4 border-t">
+                        {user && (
+                            <Button onClick={handleLogout} variant="ghost" className="w-full justify-start gap-2">
+                                  <LogOut className="mr-2 h-4 w-4" />
                                 Logout
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    )}
-                </div>
-            </header>
-            <main className="flex-1 overflow-auto p-4 lg:p-8">
-            {children}
-            </main>
-        </div>
+                            </Button>
+                        )}
+                      </div>
+                </SheetContent>
+            </Sheet>
+          </div>
+      </header>
+      <main className="flex-1 overflow-auto p-4 lg:p-8">
+        {children}
+      </main>
     </div>
   );
 }
