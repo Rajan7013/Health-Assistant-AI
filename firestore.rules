@@ -7,18 +7,21 @@ service cloud.firestore {
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
-    
-    function isCreate() {
-      return request.method == 'create';
-    }
-    
-    function isUpdate() {
-      return request.method == 'update';
-    }
 
     match /users/{userId} {
       allow read;
-      allow write: if isOwner(userId);
+      
+      // A user can create their own profile document.
+      // The document uid must match the authenticated user's uid.
+      allow create: if isOwner(userId) && request.resource.data.uid == userId;
+      
+      // A user can update their own profile.
+      // They can only change mutable fields like displayName.
+      // They cannot change their uid, email, or when the account was created.
+      allow update: if isOwner(userId)
+                    && request.resource.data.uid == resource.data.uid
+                    && request.resource.data.email == resource.data.email
+                    && request.resource.data.createdAt == resource.data.createdAt;
 
       match /schedules/{scheduleId} {
         allow read, write: if isOwner(userId);
@@ -26,5 +29,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
