@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { contextAwareChatbot, type ContextAwareChatbotInput } from '@/ai/flows/context-aware-chatbot';
-import { textToSpeech } from '@/ai/flows/text-to-speech';
+import { textToSpeechStream } from '@/ai/flows/text-to-speech-stream';
 import { Bot, Send, User, Loader2, Sparkles, Volume2, Pause } from 'lucide-react';
 
 type MessageIntent = 'MEDICINE' | 'SYMPTOM' | 'GENERAL' | 'EMERGENCY';
@@ -20,7 +20,6 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   intent?: MessageIntent;
-  audioDataUri?: string | null;
   isAudioLoading?: boolean;
 }
 
@@ -70,6 +69,10 @@ export default function ChatPage() {
   
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const mediaSourceRef = useRef<MediaSource | null>(null);
+  const sourceBufferRef = useRef<SourceBuffer | null>(null);
+  const audioStreamQueue = useRef<ArrayBuffer[]>([]);
+  const isAppending = useRef(false);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -88,7 +91,7 @@ export default function ChatPage() {
     const audioElement = audioRef.current;
     if (audioElement) {
       audioElement.addEventListener('ended', handleAudioEnded);
-      audioElement.addEventListener('pause', handleAudioEnded); // Also stop when paused
+      audioElement.addEventListener('pause', handleAudioEnded);
       return () => {
         audioElement.removeEventListener('ended', handleAudioEnded);
         audioElement.removeEventListener('pause', handleAudioEnded);
@@ -96,49 +99,71 @@ export default function ChatPage() {
     }
   }, [audioRef]);
 
+  const appendNextChunk = () => {
+    if (isAppending.current || audioStreamQueue.current.length === 0 || !sourceBufferRef.current || sourceBufferRef.current.updating) {
+      return;
+    }
+    isAppending.current = true;
+    const chunk = audioStreamQueue.current.shift();
+    if (chunk) {
+      try {
+        sourceBufferRef.current.appendBuffer(chunk);
+      } catch (e) {
+        console.error("Error appending buffer:", e);
+        isAppending.current = false;
+      }
+    }
+  };
 
   const handlePlayAudio = async (message: Message) => {
     const { id, content } = message;
-    let { audioDataUri } = message;
-
-    // If this message is already playing, pause it.
+    
     if (playingMessageId === id && audioRef.current) {
       audioRef.current.pause();
       setPlayingMessageId(null);
       return;
     }
+    
+    if (!content.trim()) return;
 
-    // If we already have the audio, play it.
-    if (audioDataUri && audioRef.current) {
-      audioRef.current.src = audioDataUri;
-      audioRef.current.play();
-      setPlayingMessageId(id);
-      return;
-    }
-
-    // If we don't have the audio, fetch it now (either for the first time or retrying).
     setMessages(prev => prev.map(msg => msg.id === id ? { ...msg, isAudioLoading: true } : msg));
+    setPlayingMessageId(id);
+
     try {
-      const result = await textToSpeech(content);
-      audioDataUri = result.audioDataUri;
-      
-      if (!audioDataUri) {
-          throw new Error("Failed to generate audio.");
-      }
+      const mediaSource = new MediaSource();
+      mediaSourceRef.current = mediaSource;
 
-      setMessages(prev => prev.map(msg => msg.id === id ? { ...msg, audioDataUri, isAudioLoading: false } : msg));
-
-      // Play the newly fetched audio
       if (audioRef.current) {
-        audioRef.current.src = audioDataUri;
-        audioRef.current.play();
-        setPlayingMessageId(id);
+        audioRef.current.src = URL.createObjectURL(mediaSource);
+        audioRef.current.play().catch(e => console.error("Audio playback failed", e));
       }
+
+      mediaSource.addEventListener('sourceopen', async () => {
+        URL.revokeObjectURL(audioRef.current!.src);
+        const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+        sourceBufferRef.current = sourceBuffer;
+
+        sourceBuffer.addEventListener('updateend', () => {
+          isAppending.current = false;
+          appendNextChunk();
+        });
+
+        const stream = await textToSpeechStream(content);
+        for await (const chunk of stream) {
+          if (chunk) {
+            audioStreamQueue.current.push(chunk.buffer);
+            appendNextChunk();
+          }
+        }
+      });
     } catch (error) {
-      console.error("Error generating speech:", error);
+      console.error("Error generating or streaming speech:", error);
+      setPlayingMessageId(null);
+    } finally {
       setMessages(prev => prev.map(msg => msg.id === id ? { ...msg, isAudioLoading: false } : msg));
     }
   };
+
   
   const handleSendMessage = useCallback(async (messageContent: string) => {
     if (!messageContent.trim() || isLoading) return;
@@ -162,39 +187,14 @@ export default function ChatPage() {
   
       const result = await contextAwareChatbot(payload);
       
-      const assistantMessageId = (Date.now() + 1).toString();
       const assistantMessage: Message = { 
-        id: assistantMessageId,
+        id: (Date.now() + 1).toString(),
         role: 'assistant', 
         content: result.response,
         intent: result.intent,
-        audioDataUri: null,
-        isAudioLoading: false, // Start as false
+        isAudioLoading: false,
       };
       setMessages((prev) => [...prev, assistantMessage]);
-  
-      // Proactively generate audio
-      setMessages(prev => prev.map(msg => msg.id === assistantMessageId ? { ...msg, isAudioLoading: true } : msg));
-      textToSpeech(result.response)
-        .then(({ audioDataUri }) => {
-          if (audioDataUri) {
-            setMessages(prev => prev.map(msg => 
-              msg.id === assistantMessageId ? { ...msg, audioDataUri, isAudioLoading: false } : msg
-            ));
-          } else {
-            // Handle case where pre-fetch returns no audio
-            setMessages(prev => prev.map(msg => 
-              msg.id === assistantMessageId ? { ...msg, isAudioLoading: false } : msg
-            ));
-          }
-        })
-        .catch(error => {
-          console.error("Error pre-fetching speech:", error);
-          setMessages(prev => prev.map(msg => 
-            msg.id === assistantMessageId ? { ...msg, isAudioLoading: false } : msg
-          ));
-        });
-
     } catch (error) {
       console.error('Error with chatbot:', error);
       const errorMessage: Message = { id: 'error-' + Date.now(), role: 'assistant', content: "Sorry, I'm having trouble connecting right now. Please try again in a moment." };
@@ -269,10 +269,12 @@ export default function ChatPage() {
                         onClick={() => handlePlayAudio(message)}
                         disabled={message.isAudioLoading}
                     >
-                        {message.isAudioLoading ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : playingMessageId === message.id ? (
+                        {message.isAudioLoading || playingMessageId === message.id ? (
+                          playingMessageId === message.id ? (
                             <Pause className="h-4 w-4" />
+                          ) : (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          )
                         ) : (
                             <Volume2 className="h-4 w-4" />
                         )}
