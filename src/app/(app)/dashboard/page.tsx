@@ -17,7 +17,7 @@ import { useState, useEffect } from 'react';
 import { useUser } from '@/firebase/auth/use-user';
 import { useFirestore } from '@/firebase';
 import { getSchedules, type ScheduleWithId } from '@/firebase/firestore/schedules';
-import { format, isToday, isFuture, parse, differenceInMinutes } from 'date-fns';
+import { format, parse, differenceInMinutes } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const heroImage = PlaceHolderImages.find(img => img.id === 'hero');
@@ -139,7 +139,7 @@ const NextReminderCard = ({ schedule, isLoading }: { schedule: ScheduleWithId | 
       <CardContent>
         <div className="flex items-center gap-4">
           <div className="p-4 bg-white dark:bg-secondary rounded-full shadow-md">
-            <Bell className="h-8 w-8 text-primary" />
+            <Bell className="h-8 w-8 text-primary animate-pulse" />
           </div>
           <div>
             <p className="text-xl font-bold">{schedule.medicineName}</p>
@@ -159,27 +159,33 @@ export default function DashboardPage() {
   const firestore = useFirestore();
   const [nextSchedule, setNextSchedule] = useState<ScheduleWithId | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (!user || !firestore) return;
+  
+  const calculateNextSchedule = (schedules: ScheduleWithId[]) => {
+    const now = new Date();
     
-    setIsLoading(true);
-
-    const unsubscribe = getSchedules(firestore, user.uid, (schedules) => {
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-      const upcoming = schedules
+    const upcoming = schedules
         .map(s => {
-          const scheduleTime = parse(s.time, 'HH:mm', today);
-          return { ...s, dateTime: scheduleTime };
+          // Create a datetime object for today with the schedule's time
+          const scheduleTimeForToday = parse(s.time, 'HH:mm', new Date());
+          return { ...s, dateTime: scheduleTimeForToday };
         })
         .filter(s => {
-          if(s.frequency === 'daily') {
-            return s.dateTime > now && s.startDate <= now;
+          // Keep only schedules that are in the future
+          if (s.dateTime <= now) return false;
+
+          const startDate = new Date(s.startDate);
+          startDate.setHours(0,0,0,0);
+          const today = new Date();
+          today.setHours(0,0,0,0);
+          
+          if(startDate > today) return false;
+
+          if (s.frequency === 'daily') {
+            return true;
           }
-          if(s.frequency === 'weekly') {
-            return s.dateTime > now && s.startDate <= now && s.startDate.getDay() === now.getDay();
+          if (s.frequency === 'weekly') {
+            // Check if the day of the week matches
+            return s.startDate.getDay() === now.getDay();
           }
           return false;
         })
@@ -187,9 +193,33 @@ export default function DashboardPage() {
 
       setNextSchedule(upcoming.length > 0 ? upcoming[0] : null);
       setIsLoading(false);
-    });
+  }
 
-    return () => unsubscribe();
+  useEffect(() => {
+    if (!user || !firestore) return;
+    
+    setIsLoading(true);
+
+    const unsubscribe = getSchedules(firestore, user.uid, calculateNextSchedule);
+
+    // Set up an interval to re-calculate every 30 seconds
+    // This handles the case where a scheduled time passes
+    const intervalId = setInterval(() => {
+        // Re-run calculation with the last known schedules
+        // This is a bit of a trick: `getSchedules` only gives us new data when it changes in firestore.
+        // To re-evaluate based on TIME, we need to trigger the calculation ourselves.
+        // We'll call it with an empty array to force re-evaluation from the last known state.
+        // This is a simplified approach. A more robust solution might involve a separate state for the raw schedules list.
+        // For now, let's re-fetch.
+        if (user && firestore) {
+           getSchedules(firestore, user.uid, calculateNextSchedule);
+        }
+    }, 30000); // every 30 seconds
+
+    return () => {
+      unsubscribe();
+      clearInterval(intervalId);
+    };
   }, [user, firestore]);
 
   return (
@@ -278,4 +308,3 @@ export default function DashboardPage() {
   );
 }
 
-    
