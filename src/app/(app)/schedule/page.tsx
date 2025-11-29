@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -22,7 +21,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { format, getDay } from "date-fns"
+import { format } from "date-fns"
 import { CalendarIcon, Bell, Pill, PlusCircle, Trash2, CalendarClock, PlayCircle } from "lucide-react"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -69,7 +68,6 @@ const iconColors = [
 
 export default function SchedulePage() {
   const [schedules, setSchedules] = useState<ScheduleWithId[]>([]);
-  const [soundUrls, setSoundUrls] = useState<Record<string, string>>({});
   const [selectedSoundUrl, setSelectedSoundUrl] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useUser();
@@ -85,51 +83,7 @@ export default function SchedulePage() {
 
     return () => unsubscribe();
   }, [user, firestore]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-        const now = new Date();
-        const currentTime = format(now, "HH:mm:ss");
-        const currentDayOfWeek = getDay(now);
-
-        schedules.forEach(schedule => {
-            const scheduleStartDate = new Date(schedule.startDate);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            const scheduleDateOnly = new Date(schedule.startDate);
-            scheduleDateOnly.setHours(0, 0, 0, 0);
-
-
-            if (schedule.time + ":00" === currentTime && today >= scheduleDateOnly) {
-                if (schedule.frequency === "daily") {
-                    triggerAlert(schedule);
-                } else if (schedule.frequency === "weekly") {
-                    const scheduleStartDayOfWeek = getDay(scheduleStartDate);
-                    if (scheduleStartDayOfWeek === currentDayOfWeek) {
-                        triggerAlert(schedule);
-                    }
-                }
-            }
-        });
-    }, 1000); // Check every second for precision
-
-    return () => clearInterval(interval);
-  }, [schedules, soundUrls]);
-
-  const triggerAlert = (schedule: ScheduleWithId) => {
-    toast({
-        title: "Medication Reminder! 💊",
-        description: `It's time to take your ${schedule.medicineName}.`,
-    });
-    
-    const soundUrl = soundUrls[schedule.id];
-    if (soundUrl && audioRef.current) {
-        audioRef.current.src = soundUrl;
-        audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
-    }
-  };
-
+  
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -156,7 +110,15 @@ export default function SchedulePage() {
         return;
       }
       form.clearErrors("sound");
-      setSelectedSoundUrl(URL.createObjectURL(file));
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+          if(e.target?.result) {
+            setSelectedSoundUrl(e.target.result as string);
+          }
+      };
+      reader.readAsDataURL(file);
+
     } else {
       setSelectedSoundUrl(null);
     }
@@ -187,7 +149,16 @@ export default function SchedulePage() {
     
     if (newDocId) {
         if (selectedSoundUrl) {
-            setSoundUrls(prev => ({...prev, [newDocId]: selectedSoundUrl}));
+            try {
+                localStorage.setItem(`sound_${newDocId}`, selectedSoundUrl);
+            } catch (e) {
+                console.error("Could not save sound to localStorage:", e);
+                toast({
+                    title: "Could not save sound",
+                    description: "The sound file is too large to be saved for global alerts.",
+                    variant: "destructive"
+                });
+            }
         }
     
         toast({
@@ -212,11 +183,7 @@ export default function SchedulePage() {
         return;
     }
     deleteScheduleFromDB(firestore, user.uid, id);
-    setSoundUrls(prev => {
-        const newUrls = {...prev};
-        delete newUrls[id];
-        return newUrls;
-    });
+    localStorage.removeItem(`sound_${id}`);
     toast({
         title: "Schedule Removed",
         variant: "destructive",
@@ -383,7 +350,7 @@ export default function SchedulePage() {
                             </p>
                         </div>
                         <div className="flex items-center gap-2">
-                            {soundUrls[schedule.id] && <Bell className="h-5 w-5 text-primary" />}
+                            {typeof window !== 'undefined' && localStorage.getItem(`sound_${schedule.id}`) && <Bell className="h-5 w-5 text-primary" />}
                             <Button variant="ghost" size="icon" className="hover:bg-destructive/10" onClick={() => handleDeleteSchedule(schedule.id)}>
                                 <Trash2 className="h-5 w-5 text-destructive" />
                                 <span className="sr-only">Delete</span>
@@ -402,7 +369,3 @@ export default function SchedulePage() {
     </div>
   );
 }
-
-    
-
-    

@@ -34,11 +34,14 @@ import { Logo } from '@/components/icons';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useUser } from '@/firebase/auth/use-user';
 import { signOut } from 'firebase/auth';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { useRouter, usePathname } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
+import { getSchedules, type ScheduleWithId } from '@/firebase/firestore/schedules';
+import { format, getDay } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 const navItems = [
   {
@@ -118,14 +121,71 @@ export default function AppLayout({
 }>) {
   const { user, loading } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const [clientLoaded, setClientLoaded] = useState(false);
+  const { toast } = useToast();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   
   useEffect(() => {
     setClientLoaded(true);
   }, []);
   
   const pathname = usePathname();
+
+  // Global reminder logic
+  useEffect(() => {
+    if (!user || !firestore) return;
+
+    const unsubscribe = getSchedules(firestore, user.uid, (schedules) => {
+        // This is a placeholder for where sound URLs would be managed if they were stored in a central DB
+        // For now, we are relying on a simplified logic which this architecture enables
+        const interval = setInterval(() => {
+            const now = new Date();
+            const currentTime = format(now, "HH:mm:ss");
+            const currentDayOfWeek = getDay(now);
+
+            schedules.forEach(schedule => {
+                const scheduleStartDate = new Date(schedule.startDate);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const scheduleDateOnly = new Date(schedule.startDate);
+                scheduleDateOnly.setHours(0, 0, 0, 0);
+
+                if (schedule.time + ":00" === currentTime && today >= scheduleDateOnly) {
+                    if (schedule.frequency === "daily") {
+                        triggerAlert(schedule);
+                    } else if (schedule.frequency === "weekly") {
+                        const scheduleStartDayOfWeek = getDay(scheduleStartDate);
+                        if (scheduleStartDayOfWeek === currentDayOfWeek) {
+                            triggerAlert(schedule);
+                        }
+                    }
+                }
+            });
+        }, 1000); // Check every second
+
+        return () => clearInterval(interval);
+    });
+
+    return () => unsubscribe();
+  }, [user, firestore]);
+
+  const triggerAlert = (schedule: ScheduleWithId) => {
+    toast({
+        title: "Medication Reminder! 💊",
+        description: `It's time to take your ${schedule.medicineName}.`,
+    });
+    
+    // The sound logic is now simplified. A real implementation would fetch a stored sound URL.
+    // For now, it will play a default system sound if one is configured or available via browser APIs.
+    const customSoundUrl = localStorage.getItem(`sound_${schedule.id}`);
+    if (customSoundUrl && audioRef.current) {
+        audioRef.current.src = customSoundUrl;
+        audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+    }
+  };
 
 
   const handleLogout = async () => {
@@ -136,6 +196,7 @@ export default function AppLayout({
   
   return (
     <div className="flex min-h-screen w-full flex-col">
+       <audio ref={audioRef} />
        <header className="sticky top-0 z-30 flex h-20 items-center gap-4 px-4 md:px-6 bg-header-gradient text-white shadow-lg">
           <div className="flex h-full items-center">
               <Link href="/" className="flex items-center gap-3 font-semibold text-lg">
