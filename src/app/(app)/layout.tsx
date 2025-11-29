@@ -109,7 +109,7 @@ const DesktopNav = ({ pathname }: { pathname: string | null }) => {
                             : "bg-white/10 text-white hover:bg-white/20"
                     )}
                 >
-                    <item.icon className={cn("h-5 w-5", pathname === item.href ? 'text-primary' : 'text-white')} />
+                    <item.icon className={cn("h-5 w-5", pathname === item.href ? item.color : 'text-white')} />
                     {item.label}
                 </Link>
             ))}
@@ -200,20 +200,7 @@ export default function AppLayout({
                 </div>
               
                 <div className="flex items-center gap-2">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                             <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white rounded-lg">
-                                <Settings className="h-5 w-5" />
-                                <span className="sr-only">Settings</span>
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Appearance</DropdownMenuLabel>
-                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                <ThemeToggle /> <span className="ml-2">Toggle Theme</span>
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    <ThemeToggle />
 
                     {(!clientLoaded || loading) ? (
                         <Skeleton className="h-10 w-24 rounded-lg" />
