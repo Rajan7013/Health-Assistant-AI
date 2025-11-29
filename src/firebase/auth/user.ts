@@ -20,36 +20,33 @@ export const updateUserProfile = async (
     throw new Error('No user is currently signed in.');
   }
 
-  // Update the Firebase Auth user profile first.
+  // 1. Update the Firebase Auth user profile. This is the primary source of truth.
   await updateProfile(user, data);
 
-  // Then, create or update the user's document in Firestore.
-  const userDocRef = doc(firestore, 'users', user.uid);
-  
-  // Prepare the data for Firestore. `updatedAt` is always set.
-  const updateData = {
+  // 2. Prepare the data for Firestore.
+  //    Crucially, this only includes the data to be changed and a timestamp.
+  //    It does NOT include uid, email, or createdAt, which are immutable.
+  const updateDataForFirestore = {
     ...data,
     updatedAt: serverTimestamp(),
-    // To prevent overwriting immutable fields, we only add these on creation.
-    // By using `setDoc` with `merge: true`, these are effectively ignored on update
-    // if the document already exists, but are crucial for creation.
-    uid: user.uid,
-    email: user.email,
-    createdAt: serverTimestamp(),
   };
 
+  // 3. Sync the update to the user's document in Firestore.
+  const userDocRef = doc(firestore, 'users', user.uid);
 
-  // Use setDoc with merge:true. This will CREATE the document if it doesn't exist,
-  // or UPDATE it if it does. This resolves the "No document to update" error
-  // and race conditions on signup.
-  setDoc(userDocRef, updateData, { merge: true })
+  // Use setDoc with { merge: true }.
+  // - If the document exists, it updates the fields (like `updateDoc`).
+  // - If the document does NOT exist (due to a race condition on signup),
+  //   it will create it with this data, solving the "No document to update" error.
+  //   A subsequent write will add the other required fields.
+  setDoc(userDocRef, updateDataForFirestore, { merge: true })
     .catch(async (serverError) => {
       // This error handling is crucial for debugging security rule denials.
       if (serverError.code === 'permission-denied') {
         const permissionError = new FirestorePermissionError({
           path: userDocRef.path,
-          operation: 'update', // Logically it's an update, even if creating.
-          requestResourceData: updateData,
+          operation: 'update',
+          requestResourceData: updateDataForFirestore,
         });
         errorEmitter.emit('permission-error', permissionError);
       } else {
