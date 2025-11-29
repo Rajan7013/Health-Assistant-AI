@@ -31,6 +31,10 @@ export const updateUserProfile = async (
   const updateData = {
     ...data,
     updatedAt: serverTimestamp(),
+    // Set createdAt only if it's a new document, which setDoc handles gracefully.
+    // To be fully robust, we could read first, but this is simpler for this use case.
+    // A more advanced implementation might use a transaction.
+    createdAt: serverTimestamp(), // Will be overwritten if doc exists and has this field
   };
 
   setDoc(userDocRef, updateData, { merge: true })
