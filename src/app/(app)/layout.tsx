@@ -190,7 +190,7 @@ export default function AppLayout({
            </div>
           
           <div className="flex-1 flex justify-center">
-             <DesktopNav pathname={pathname} />
+             {clientLoaded && <DesktopNav pathname={pathname} />}
           </div>
           
           <div className="flex items-center gap-2">
