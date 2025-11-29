@@ -34,6 +34,38 @@
         "email",
         "createdAt"
       ]
+    },
+    "Schedule": {
+      "title": "Medication Schedule",
+      "description": "Represents a single medication reminder for a user.",
+      "type": "object",
+      "properties": {
+        "medicineName": {
+          "type": "string",
+          "description": "The name of the medicine."
+        },
+        "startDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date when the schedule starts."
+        },
+        "time": {
+          "type": "string",
+          "format": "time",
+          "description": "The time of day for the reminder (HH:mm)."
+        },
+        "frequency": {
+          "type": "string",
+          "enum": ["daily", "weekly"],
+          "description": "How often the reminder should occur."
+        }
+      },
+      "required": [
+        "medicineName",
+        "startDate",
+        "time",
+        "frequency"
+      ]
     }
   },
   "auth": {
@@ -48,6 +80,14 @@
         "$ref": "#/entities/UserProfile"
       },
       "description": "Stores public information for each user."
+    },
+    "/users/{userId}/schedules/{scheduleId}": {
+        "schema": {
+            "$ref": "#/entities/Schedule"
+        },
+        "description": "Stores medication schedules for a specific user."
     }
   }
 }
+
+    

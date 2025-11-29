@@ -9,6 +9,7 @@ import {
 import type { Auth } from 'firebase/auth';
 import type { FirebaseApp } from 'firebase/app';
 import type { Firestore } from 'firebase/firestore';
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 export interface FirebaseContextValue {
   firebaseApp: FirebaseApp;
@@ -27,6 +28,7 @@ export function FirebaseProvider({
   return (
     <FirebaseContext.Provider value={value}>
       {children}
+      <FirebaseErrorListener />
     </FirebaseContext.Provider>
   );
 }
@@ -42,3 +44,5 @@ export function useFirebase() {
 export const useFirebaseApp = () => useFirebase().firebaseApp;
 export const useAuth = () => useFirebase().auth;
 export const useFirestore = () => useFirebase().firestore;
+
+    

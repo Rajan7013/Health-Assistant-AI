@@ -24,16 +24,13 @@ import { cn } from "@/lib/utils"
 import { format, getDay } from "date-fns"
 import { CalendarIcon, Bell, Pill, PlusCircle, Trash2, CalendarClock } from "lucide-react"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-  } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
+import { useUser } from "@/firebase/auth/use-user"
+import { useFirestore } from "@/firebase"
+import { addSchedule, deleteSchedule as deleteScheduleFromDB, getSchedules } from "@/firebase/firestore/schedules"
+import { Unsubscribe } from "firebase/firestore"
 
 const formSchema = z.object({
   medicineName: z.string().min(2, {
@@ -46,17 +43,11 @@ const formSchema = z.object({
   frequency: z.enum(["daily", "weekly"], {
     required_error: "You need to select a frequency.",
   }),
-  sound: z.string({
-    required_error: "Please select a sound.",
-  }),
 })
 
-type Schedule = z.infer<typeof formSchema> & { id: number };
-
-const initialSchedules: Schedule[] = [
-    { id: 1, medicineName: "Lisinopril", startDate: new Date(), time: "08:00", frequency: "daily", sound: "chime" },
-    { id: 2, medicineName: "Metformin", startDate: new Date(), time: "20:00", frequency: "daily", sound: "radar" },
-]
+// The data from Firestore will have a startDate as a Timestamp, which we'll convert to a Date.
+// The local state will work with Date objects.
+export type Schedule = z.infer<typeof formSchema> & { id: string };
 
 const cardColors = [
     "bg-sky-100 dark:bg-sky-900/30",
@@ -75,9 +66,20 @@ const iconColors = [
 ]
 
 export default function SchedulePage() {
-  const [schedules, setSchedules] = useState<Schedule[]>(initialSchedules);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
   const { toast } = useToast();
-  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  useEffect(() => {
+    if (!user || !firestore) return;
+
+    const unsubscribe = getSchedules(firestore, user.uid, (newSchedules) => {
+        setSchedules(newSchedules);
+    });
+
+    return () => unsubscribe();
+  }, [user, firestore]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -89,10 +91,12 @@ export default function SchedulePage() {
             const scheduleDate = new Date(schedule.startDate);
             // Check if schedule is active
             if (now >= scheduleDate) {
-                if (schedule.frequency === "daily" && schedule.time === currentTime) {
-                    triggerAlert(schedule);
-                } else if (schedule.frequency === "weekly" && getDay(scheduleDate) === currentDay && schedule.time === currentTime) {
-                    triggerAlert(schedule);
+                if (schedule.time === currentTime) {
+                    if (schedule.frequency === "daily") {
+                        triggerAlert(schedule);
+                    } else if (schedule.frequency === "weekly" && getDay(scheduleDate) === currentDay) {
+                        triggerAlert(schedule);
+                    }
                 }
             }
         });
@@ -106,16 +110,6 @@ export default function SchedulePage() {
         title: "Medication Reminder! 💊",
         description: `It's time to take your ${schedule.medicineName}.`,
     });
-    
-    if (audio) {
-      audio.pause();
-      audio.currentTime = 0;
-    }
-
-    const soundFile = schedule.sound === 'default' ? 'chime' : schedule.sound;
-    const newAudio = new Audio(`/sounds/${soundFile}.mp3`);
-    newAudio.play().catch(e => console.error("Audio play failed:", e));
-    setAudio(newAudio);
   };
 
 
@@ -125,13 +119,17 @@ export default function SchedulePage() {
       medicineName: "",
       time: "09:00",
       frequency: "daily",
-      sound: "chime",
     },
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    const newSchedule: Schedule = { ...values, id: Date.now() };
-    setSchedules(prev => [...prev, newSchedule]);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!user) {
+        toast({ title: "Error", description: "You must be logged in to set a schedule.", variant: "destructive" });
+        return;
+    }
+    
+    await addSchedule(firestore, user.uid, values);
+
     toast({
         title: "Schedule Set!",
         description: `${values.medicineName} has been added to your schedule.`,
@@ -139,12 +137,15 @@ export default function SchedulePage() {
     form.reset();
     form.setValue("time", "09:00");
     form.setValue("frequency", "daily");
-    form.setValue("sound", "chime");
     form.setValue("startDate", undefined);
   }
 
-  function deleteSchedule(id: number) {
-    setSchedules(prev => prev.filter(s => s.id !== id));
+  async function handleDeleteSchedule(id: string) {
+    if (!user) {
+        toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
+        return;
+    }
+    await deleteScheduleFromDB(firestore, user.uid, id);
     toast({
         title: "Schedule Removed",
         variant: "destructive",
@@ -266,29 +267,6 @@ export default function SchedulePage() {
                                     </FormItem>
                                 )}
                             />
-
-                             <FormField
-                                control={form.control}
-                                name="sound"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel className="font-semibold">Alarm Sound</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select an alarm tone" />
-                                        </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                        <SelectItem value="chime">Chime</SelectItem>
-                                        <SelectItem value="radar">Radar</SelectItem>
-                                        <SelectItem value="signal">Signal</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
                             
                             <Button type="submit" size="lg" className="w-full bg-gradient-to-r from-primary to-blue-500 text-white hover:opacity-90 font-bold">Set Reminder</Button>
                         </form>
@@ -312,11 +290,7 @@ export default function SchedulePage() {
                             </p>
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1 text-sm text-muted-foreground bg-background/50 rounded-full px-3 py-1">
-                                <Bell className="h-4 w-4" />
-                                <span className="capitalize">{schedule.sound}</span>
-                            </div>
-                            <Button variant="ghost" size="icon" className="hover:bg-destructive/10" onClick={() => deleteSchedule(schedule.id)}>
+                            <Button variant="ghost" size="icon" className="hover:bg-destructive/10" onClick={() => handleDeleteSchedule(schedule.id)}>
                                 <Trash2 className="h-5 w-5 text-destructive" />
                                 <span className="sr-only">Delete</span>
                             </Button>
@@ -334,3 +308,4 @@ export default function SchedulePage() {
     </div>
   );
 }
+    
