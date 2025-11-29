@@ -1,16 +1,17 @@
 'use client';
 
-import { updateProfile, type User } from 'firebase/auth';
-import { doc, updateDoc } from 'firebase/firestore';
-import { initializeFirebase } from '..';
-
-const { auth, firestore } = initializeFirebase();
+import { updateProfile, type Auth } from 'firebase/auth';
+import { doc, updateDoc, type Firestore } from 'firebase/firestore';
 
 type UpdateData = {
   displayName?: string;
 };
 
-export const updateUserProfile = async (data: UpdateData) => {
+export const updateUserProfile = async (
+  auth: Auth,
+  firestore: Firestore,
+  data: UpdateData
+) => {
   const user = auth.currentUser;
   if (!user) {
     throw new Error('No user is currently signed in.');
