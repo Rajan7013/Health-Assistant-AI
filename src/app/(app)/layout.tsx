@@ -44,26 +44,31 @@ const navItems = [
     href: '/dashboard',
     icon: LayoutDashboard,
     label: 'Dashboard',
+    color: 'text-sky-500',
   },
   {
     href: '/symptom-checker',
     icon: Stethoscope,
     label: 'Symptom Checker',
+    color: 'text-indigo-500',
   },
   {
     href: '/chat',
     icon: Bot,
     label: 'AI Chat',
+    color: 'text-purple-500',
   },
   {
     href: '/schedule',
     icon: CalendarClock,
     label: 'Schedule',
+    color: 'text-blue-500',
   },
   {
     href: '/diseases',
     icon: BookHeart,
     label: 'Diseases',
+    color: 'text-green-500',
   },
 ];
 
@@ -77,7 +82,7 @@ const AppNav = () => (
         asChild
       >
         <Link href={item.href}>
-          <item.icon className="h-4 w-4" />
+          <item.icon className={cn("h-4 w-4", item.color)} />
           {item.label}
         </Link>
       </Button>
@@ -87,18 +92,18 @@ const AppNav = () => (
 
 const DesktopNav = ({ pathname }: { pathname: string }) => {
     return (
-        <nav className="hidden lg:flex items-center gap-2 bg-muted/50 p-2 rounded-full">
+        <nav className="hidden lg:flex items-center gap-2">
             {navItems.map((item) => (
                 <Link
                     key={item.label}
                     href={item.href}
                     className={cn(
-                        "relative rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-all duration-300 hover:text-foreground hover:bg-background/50 hover:shadow-md",
+                        "relative rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-all duration-300 hover:text-foreground hover:bg-background/50 hover:shadow-[0_0_15px_-3px_rgba(0,0,0,0.1),0_4px_6px_-4px_rgba(0,0,0,0.1)]",
                         pathname === item.href && "bg-background text-foreground shadow-md"
                     )}
                 >
                     <span className="relative z-10 flex items-center gap-2">
-                        <item.icon className="h-4 w-4" />
+                        <item.icon className={cn("h-4 w-4", item.color)} />
                         {item.label}
                     </span>
                 </Link>
@@ -135,7 +140,7 @@ export default function AppLayout({
 
   return (
     <div className="flex min-h-screen w-full flex-col">
-        <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6 z-50">
+        <header className="sticky top-0 flex h-20 items-center gap-4 border-b bg-card/95 backdrop-blur-sm px-4 md:px-6 z-50">
            <div className="flex items-center gap-2">
               <Sheet>
                 <SheetTrigger asChild>
