@@ -20,6 +20,8 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   intent?: MessageIntent;
+  audioDataUri?: string | null;
+  isAudioLoading?: boolean;
 }
 
 const SmartChips = ({ intent, onSelect }: { intent: MessageIntent, onSelect: (text: string) => void }) => {
@@ -66,12 +68,7 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   
-  const [audioState, setAudioState] = useState<{
-    playingMessageId: string | null;
-    isLoading: boolean;
-    error: string | null;
-  }>({ playingMessageId: null, isLoading: false, error: null });
-
+  const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -82,52 +79,44 @@ export default function ChatPage() {
       });
     }
   }, [messages]);
-
+  
   const handleAudioEnded = () => {
-    setAudioState({ playingMessageId: null, isLoading: false, error: null });
+    setPlayingMessageId(null);
   };
   
   useEffect(() => {
     const audioElement = audioRef.current;
     if (audioElement) {
       audioElement.addEventListener('ended', handleAudioEnded);
+      audioElement.addEventListener('pause', handleAudioEnded); // Also stop when paused
       return () => {
         audioElement.removeEventListener('ended', handleAudioEnded);
+        audioElement.removeEventListener('pause', handleAudioEnded);
       };
     }
   }, [audioRef]);
 
 
   const handlePlayAudio = async (message: Message) => {
-    const { id, content } = message;
+    const { id, audioDataUri } = message;
 
-    if (audioState.playingMessageId === id && audioRef.current) {
-        if (!audioRef.current.paused) {
-            audioRef.current.pause();
-        } else {
-            audioRef.current.play();
-        }
-        return;
+    if (playingMessageId === id && audioRef.current) {
+      if (!audioRef.current.paused) {
+        audioRef.current.pause();
+        setPlayingMessageId(null);
+      } else {
+        audioRef.current.play();
+        setPlayingMessageId(id);
+      }
+      return;
     }
     
-    if (audioState.isLoading) return;
-    
-    setAudioState({ playingMessageId: id, isLoading: true, error: null });
-
-    try {
-        const { audioDataUri } = await textToSpeech(content);
-        if (audioRef.current) {
-            audioRef.current.src = audioDataUri;
-            audioRef.current.play();
-            setAudioState({ playingMessageId: id, isLoading: false, error: null });
-        }
-    } catch (error) {
-        console.error("Error generating speech:", error);
-        setAudioState({ playingMessageId: null, isLoading: false, error: "Could not generate audio." });
+    if (audioDataUri && audioRef.current) {
+        audioRef.current.src = audioDataUri;
+        audioRef.current.play();
+        setPlayingMessageId(id);
     }
   };
-
-
   
   const handleSendMessage = useCallback(async (messageContent: string) => {
     if (!messageContent.trim() || isLoading) return;
@@ -151,14 +140,31 @@ export default function ChatPage() {
   
       const result = await contextAwareChatbot(payload);
       
+      const assistantMessageId = (Date.now() + 1).toString();
       const assistantMessage: Message = { 
-        id: (Date.now() + 1).toString(),
+        id: assistantMessageId,
         role: 'assistant', 
         content: result.response,
         intent: result.intent,
+        audioDataUri: null,
+        isAudioLoading: true,
       };
       setMessages((prev) => [...prev, assistantMessage]);
   
+      // Proactively generate audio
+      textToSpeech(result.response)
+        .then(({ audioDataUri }) => {
+          setMessages(prev => prev.map(msg => 
+            msg.id === assistantMessageId ? { ...msg, audioDataUri, isAudioLoading: false } : msg
+          ));
+        })
+        .catch(error => {
+          console.error("Error pre-fetching speech:", error);
+          setMessages(prev => prev.map(msg => 
+            msg.id === assistantMessageId ? { ...msg, isAudioLoading: false } : msg
+          ));
+        });
+
     } catch (error) {
       console.error('Error with chatbot:', error);
       const errorMessage: Message = { id: 'error-' + Date.now(), role: 'assistant', content: "Sorry, I'm having trouble connecting right now. Please try again in a moment." };
@@ -229,13 +235,13 @@ export default function ChatPage() {
                     <Button
                         size="icon"
                         variant="ghost"
-                        className="absolute -top-3 -right-3 h-7 w-7 rounded-full bg-background border text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute -top-3 -right-3 h-7 w-7 rounded-full bg-background border text-primary opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                         onClick={() => handlePlayAudio(message)}
-                        disabled={audioState.isLoading && audioState.playingMessageId !== message.id}
+                        disabled={message.isAudioLoading || !message.audioDataUri}
                     >
-                        {audioState.isLoading && audioState.playingMessageId === message.id ? (
+                        {message.isAudioLoading ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : audioState.playingMessageId === message.id && audioRef.current && !audioRef.current.paused ? (
+                        ) : playingMessageId === message.id ? (
                             <Pause className="h-4 w-4" />
                         ) : (
                             <Volume2 className="h-4 w-4" />
