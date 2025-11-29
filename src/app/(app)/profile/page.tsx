@@ -36,7 +36,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useUser } from "@/firebase/auth/use-user";
-import { Loader2, User as UserIcon } from "lucide-react";
+import { Loader2, User as UserIcon, Palette, Bell, ShieldAlert, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { updateUserProfile } from "@/firebase/auth/user";
 import { useAuth, useFirestore } from "@/firebase";
@@ -48,9 +48,12 @@ const profileFormSchema = z.object({
 
 
 const LegalTabContent = () => (
-    <Card>
+    <Card className="bg-gradient-to-br from-card to-secondary/30 border-secondary">
       <CardHeader>
-        <CardTitle>Legal & Support</CardTitle>
+        <CardTitle className="flex items-center gap-3">
+          <FileText className="text-primary" />
+          Legal & Support
+        </CardTitle>
         <CardDescription>
           Review our terms, policies, and get help.
         </CardDescription>
@@ -58,19 +61,19 @@ const LegalTabContent = () => (
       <CardContent>
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="privacy">
-            <AccordionTrigger>Privacy Policy</AccordionTrigger>
+            <AccordionTrigger className="hover:text-primary">Privacy Policy</AccordionTrigger>
             <AccordionContent>
               Your privacy is important to us. Our Privacy Policy explains how we collect, use, and share your personal information. We are committed to protecting your data and ensuring that you have control over your information. For more details, please read the full policy.
             </AccordionContent>
           </AccordionItem>
           <AccordionItem value="terms">
-            <AccordionTrigger>Terms of Service</AccordionTrigger>
+            <AccordionTrigger className="hover:text-primary">Terms of Service</AccordionTrigger>
             <AccordionContent>
               By using HealthMind AI, you agree to our Terms of Service. These terms govern your use of our app and its services. Please read them carefully. The services are for informational purposes only and are not a substitute for professional medical advice.
             </AccordionContent>
           </AccordionItem>
           <AccordionItem value="support">
-            <AccordionTrigger>Contact Support</AccordionTrigger>
+            <AccordionTrigger className="hover:text-primary">Contact Support</AccordionTrigger>
             <AccordionContent>
               If you need help or have any questions, please contact our support team at support@healthmind.ai. We are here to assist you with any issues or feedback you may have.
             </AccordionContent>
@@ -82,15 +85,18 @@ const LegalTabContent = () => (
 
 const SettingsTabContent = () => (
     <div className="space-y-8">
-        <Card>
+        <Card className="bg-gradient-to-br from-card to-blue-500/10 border-blue-500/30">
           <CardHeader>
-            <CardTitle>Appearance</CardTitle>
+             <CardTitle className="flex items-center gap-3">
+                <Palette className="text-blue-500" />
+                Appearance
+            </CardTitle>
             <CardDescription>
               Customize the look and feel of the app.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between p-4 rounded-lg bg-background/50">
               <div>
                 <Label htmlFor="theme" className="font-medium">Theme</Label>
                 <p className="text-sm text-muted-foreground">Select your preferred color scheme.</p>
@@ -100,15 +106,18 @@ const SettingsTabContent = () => (
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-card to-green-500/10 border-green-500/30">
           <CardHeader>
-            <CardTitle>Notifications</CardTitle>
+            <CardTitle className="flex items-center gap-3">
+                <Bell className="text-green-500" />
+                Notifications
+            </CardTitle>
             <CardDescription>
               Manage how you receive notifications from the app.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 rounded-lg border">
+            <div className="flex items-center justify-between p-4 rounded-lg bg-background/50">
               <div>
                 <Label htmlFor="medicine-reminders" className="font-medium">Medicine Reminders</Label>
                 <p className="text-sm text-muted-foreground">
@@ -117,7 +126,7 @@ const SettingsTabContent = () => (
               </div>
               <Switch id="medicine-reminders" defaultChecked />
             </div>
-            <div className="flex items-center justify-between p-4 rounded-lg border">
+            <div className="flex items-center justify-between p-4 rounded-lg bg-background/50">
                 <div>
                     <Label htmlFor="app-updates" className="font-medium">App Updates</Label>
                     <p className="text-sm text-muted-foreground">
@@ -129,10 +138,13 @@ const SettingsTabContent = () => (
           </CardContent>
         </Card>
         
-        <Card className="border-destructive">
+        <Card className="border-destructive bg-destructive/10">
             <CardHeader>
-                <CardTitle className="text-destructive">Danger Zone</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-destructive flex items-center gap-3">
+                    <ShieldAlert />
+                    Danger Zone
+                </CardTitle>
+                <CardDescription className="text-destructive/80">
                 Actions in this area are permanent and cannot be undone.
                 </CardDescription>
             </CardHeader>
@@ -178,7 +190,7 @@ export default function ProfilePage() {
       displayName: user?.displayName || "",
       email: user?.email || "",
     },
-    values: { // Use values to make the form reactive to user prop changes
+    values: {
         displayName: user?.displayName || "",
         email: user?.email || "",
     }
@@ -187,13 +199,15 @@ export default function ProfilePage() {
   const { isSubmitting } = form.formState;
 
   const onSubmit = async (values: z.infer<typeof profileFormSchema>) => {
+    if (!user) return;
     try {
-        await updateUserProfile(auth, firestore, { displayName: values.displayName });
+        await updateUserProfile(firestore, user, { displayName: values.displayName });
         toast({
             title: "Profile Updated",
             description: "Your profile has been successfully updated.",
         });
     } catch (error) {
+        console.error(error);
         toast({
             variant: "destructive",
             title: "Update Failed",
@@ -204,24 +218,24 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="font-headline text-4xl font-bold mb-8">Profile & Settings</h1>
+      <h1 className="font-headline text-4xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400">Profile & Settings</h1>
       
       <Tabs defaultValue="profile" className="space-y-8">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="profile">Edit Profile</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-          <TabsTrigger value="legal">Legal & Support</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 h-12 bg-muted/50 rounded-xl">
+          <TabsTrigger value="profile" className="rounded-lg h-10">Edit Profile</TabsTrigger>
+          <TabsTrigger value="settings" className="rounded-lg h-10">Settings</TabsTrigger>
+          <TabsTrigger value="legal" className="rounded-lg h-10">Legal & Support</TabsTrigger>
         </TabsList>
         
         <TabsContent value="profile">
-            <Card>
+            <Card className="bg-gradient-to-br from-card to-primary/10 border-primary/30">
                 <CardHeader>
                     <CardTitle>Profile Information</CardTitle>
                     <CardDescription>View and edit your personal details.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="flex items-center gap-4">
-                        <Avatar className="h-20 w-20">
+                    <div className="flex items-center gap-4 p-4 rounded-lg bg-background/50">
+                        <Avatar className="h-20 w-20 border-4 border-primary/50">
                             <AvatarImage src={user?.photoURL || ''} />
                             <AvatarFallback>
                                 <UserIcon className="h-10 w-10 text-muted-foreground" />
@@ -234,7 +248,7 @@ export default function ProfilePage() {
                     </div>
                     
                      <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
                             <FormField
                                 control={form.control}
                                 name="displayName"
