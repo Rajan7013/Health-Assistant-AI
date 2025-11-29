@@ -39,7 +39,7 @@ import { useUser } from "@/firebase/auth/use-user";
 import { Loader2, User as UserIcon, Palette, Bell, ShieldAlert, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { updateUserProfile } from "@/firebase/auth/user";
-import { useAuth, useFirestore } from "@/firebase";
+import { useFirestore } from "@/firebase";
 
 const profileFormSchema = z.object({
   displayName: z.string().min(3, "Name must be at least 3 characters."),
@@ -180,7 +180,6 @@ const SettingsTabContent = () => (
 
 export default function ProfilePage() {
   const { user } = useUser();
-  const auth = useAuth();
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -199,7 +198,7 @@ export default function ProfilePage() {
   const { isSubmitting } = form.formState;
 
   const onSubmit = async (values: z.infer<typeof profileFormSchema>) => {
-    if (!user) return;
+    if (!user || !firestore) return;
     try {
         await updateUserProfile(firestore, user, { displayName: values.displayName });
         toast({
