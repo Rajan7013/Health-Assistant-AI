@@ -10,7 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { contextAwareChatbot, ContextAwareChatbotInput } from '@/ai/flows/context-aware-chatbot';
 import { Logo } from '@/components/icons';
-import { Bot, Send, User, Loader2 } from 'lucide-react';
+import { Bot, Send, User, Loader2, Sparkles } from 'lucide-react';
 
 type MessageIntent = 'MEDICINE' | 'SYMPTOM' | 'GENERAL' | 'EMERGENCY';
 
@@ -35,14 +35,14 @@ const SmartChips = ({ intent, onSelect }: { intent: MessageIntent, onSelect: (te
   }
 
   return (
-    <div className="mt-3 ml-1 max-w-[85%]">
+    <div className="mt-4 ml-1 max-w-[85%]">
         <p className="text-xs text-muted-foreground font-medium mb-2">Suggested Questions:</p>
         <div className="flex flex-row flex-wrap gap-2">
             {chips.map((chip, index) => (
                 <button 
                     key={index} 
                     onClick={() => onSelect(chip)}
-                    className="px-3 py-1.5 text-xs font-semibold text-primary bg-white border border-primary rounded-full hover:bg-primary/10 transition-all duration-200 shadow-sm hover:shadow-md"
+                    className="px-3 py-1.5 text-xs font-semibold text-primary bg-background border border-primary/50 rounded-full hover:bg-primary/10 transition-all duration-200 transform hover:scale-105"
                 >
                 {chip}
                 </button>
@@ -121,25 +121,30 @@ export default function ChatPage() {
   };
   
   const handleChipSelect = (chipText: string) => {
-    // We don't set the input, just send the message directly
     handleSendMessage(chipText);
   };
 
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
-        {messages.length === 0 && (
-            <div className='p-4 pt-0'>
+    <div className="flex flex-col h-[calc(100vh-8rem)] bg-background rounded-2xl shadow-2xl border">
+        {messages.length > 0 && (
+            <div className='p-4 pb-0'>
                 <MedicalDisclaimer />
             </div>
         )}
-      <ScrollArea className="flex-1 p-4 pt-0" ref={scrollAreaRef}>
+      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
         <div className="space-y-6">
           {messages.length === 0 && (
-            <div className="space-y-4 text-center text-muted-foreground mt-8">
-              <Bot className="mx-auto h-12 w-12" />
-              <h2 className="text-2xl font-semibold">HealthMind AI</h2>
-              <p>Your personal AI health assistant. Ask me about medicines, diseases, and more.</p>
+            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground pt-16">
+              <div className="relative mb-4">
+                 <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse-slow"></div>
+                 <Bot className="relative h-20 w-20 text-primary animate-pulse-slow-bounce" />
+              </div>
+              <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400">HealthMind AI</h2>
+              <p className="mt-2 max-w-sm">Your personal AI health assistant. Ask me about medicines, diseases, and more.</p>
+               <div className='p-4 pt-8 w-full max-w-md'>
+                <MedicalDisclaimer />
+            </div>
             </div>
           )}
           {messages.map((message, index) => (
@@ -151,18 +156,18 @@ export default function ChatPage() {
               )}
             >
               {message.role === 'assistant' && (
-                <Avatar className="h-8 w-8 border">
+                <Avatar className="h-8 w-8 border-2 border-primary/50 shadow-lg">
                    <div className="bg-primary flex items-center justify-center h-full w-full">
-                     <Logo className="h-5 w-5 text-primary-foreground" />
+                     <Sparkles className="h-5 w-5 text-primary-foreground" />
                    </div>
                 </Avatar>
               )}
               <div
                 className={cn(
-                  'max-w-prose rounded-lg p-3 text-sm shadow-sm',
+                  'max-w-[85%] rounded-2xl p-4 text-sm shadow-md',
                   message.role === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-card'
+                    ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-lg'
+                    : 'bg-card border rounded-bl-lg'
                 )}
               >
                 <article className="prose prose-sm dark:prose-invert prose-p:my-2 prose-headings:my-3 break-words">
@@ -179,7 +184,7 @@ export default function ChatPage() {
                 )}
               </div>
               {message.role === 'user' && (
-                 <Avatar className="h-8 w-8">
+                 <Avatar className="h-8 w-8 shadow-lg">
                   <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
                 </Avatar>
               )}
@@ -187,30 +192,30 @@ export default function ChatPage() {
           ))}
           {isLoading && (
             <div className="flex items-start gap-3 justify-start">
-              <Avatar className="h-8 w-8 border">
-                <div className="bg-primary flex items-center justify-center h-full w-full">
-                  <Logo className="h-5 w-5 text-primary-foreground" />
-                </div>
+              <Avatar className="h-8 w-8 border-2 border-primary/50 shadow-lg">
+                 <div className="bg-primary flex items-center justify-center h-full w-full">
+                   <Sparkles className="h-5 w-5 text-primary-foreground" />
+                 </div>
               </Avatar>
-              <div className="max-w-md rounded-lg p-3 text-sm shadow-sm bg-card flex items-center">
-                 <Loader2 className="h-4 w-4 animate-spin" />
-                 <span className="ml-2 animate-pulse">...</span>
+              <div className="max-w-md rounded-2xl p-3 text-sm shadow-md bg-card flex items-center border">
+                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                 <span className="ml-2 animate-pulse text-muted-foreground">AI is thinking...</span>
               </div>
             </div>
           )}
         </div>
       </ScrollArea>
-      <div className="border-t bg-card p-4">
-        <form onSubmit={handleSubmit} className="flex items-center gap-3">
+      <div className="border-t bg-card p-4 rounded-b-2xl">
+        <form onSubmit={handleSubmit} className="relative">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about a medicine or symptom..."
-            className="flex-1"
+            className="flex-1 pr-12 h-12 text-base rounded-full"
             disabled={isLoading}
             autoFocus
           />
-          <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
+          <Button type="submit" size="icon" disabled={isLoading || !input.trim()} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full h-9 w-9 bg-gradient-to-br from-primary to-blue-400 hover:opacity-90 transition-opacity">
             <Send className="h-4 w-4" />
           </Button>
         </form>
@@ -218,5 +223,3 @@ export default function ChatPage() {
     </div>
   );
 }
-
-    
