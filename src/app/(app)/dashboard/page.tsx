@@ -103,7 +103,7 @@ export default function DashboardPage() {
             </div>
         </Card>
 
-        <Card className="rounded-2xl shadow-lg">
+        <Card className="rounded-2xl shadow-lg bg-secondary border-blue-500/20">
             <CardContent className="p-6">
                 <h2 className="text-xl font-bold mb-4">Quick Access</h2>
                 <div className="grid grid-cols-2 gap-4">
@@ -126,8 +126,8 @@ export default function DashboardPage() {
         <h2 className="text-2xl font-bold mb-4">Explore Our Core Features</h2>
         <div className="grid gap-6 md:grid-cols-2">
             {coreFeatures.map(feature => (
-                <Link href={feature.href} key={feature.title}>
-                    <div className={`p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 flex items-center gap-6 ${feature.color}`}>
+                 <Link href={feature.href} key={feature.title}>
+                    <div className={`p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col text-center items-center gap-4 ${feature.color}`}>
                         <div className="p-4 bg-white rounded-full shadow-md">
                             <feature.icon className={`h-8 w-8 ${feature.iconColor}`} />
                         </div>
@@ -135,7 +135,6 @@ export default function DashboardPage() {
                             <h3 className="text-xl font-bold text-foreground">{feature.title}</h3>
                             <p className="text-muted-foreground mt-1">{feature.description}</p>
                         </div>
-                        <ArrowRight className="h-6 w-6 text-muted-foreground ml-auto" />
                     </div>
                 </Link>
             ))}
