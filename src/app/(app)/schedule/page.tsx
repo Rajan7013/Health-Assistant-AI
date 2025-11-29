@@ -97,23 +97,22 @@ export default function SchedulePage() {
     const interval = setInterval(() => {
         const now = new Date();
         const currentTime = format(now, "HH:mm");
-        const currentDayOfWeek = getDay(now); // Sunday is 0, Monday is 1, etc.
+        const currentDayOfWeek = getDay(now);
 
         schedules.forEach(schedule => {
             const scheduleStartDate = new Date(schedule.startDate);
+            const today = new Date(now); // Create a new Date object for today
             
             // Set time to 00:00:00 to compare dates only
             scheduleStartDate.setHours(0,0,0,0); 
-            const today = new Date();
             today.setHours(0,0,0,0);
 
-            // Check if the current time matches the schedule time
-            // and if today is on or after the start date.
-            if (schedule.time === currentTime && now >= scheduleStartDate) {
+            if (schedule.time === currentTime && today >= scheduleStartDate) {
                 if (schedule.frequency === "daily") {
                     triggerAlert(schedule);
                 } else if (schedule.frequency === "weekly") {
-                    const scheduleStartDayOfWeek = getDay(scheduleStartDate);
+                    // Use the original schedule.startDate to get the correct day of the week
+                    const scheduleStartDayOfWeek = getDay(new Date(schedule.startDate));
                     if (scheduleStartDayOfWeek === currentDayOfWeek) {
                         triggerAlert(schedule);
                     }
@@ -169,17 +168,26 @@ export default function SchedulePage() {
         frequency: values.frequency,
     };
     
-    await addSchedule(firestore, user.uid, scheduleDataForDb);
-
-    toast({
-        title: "Schedule Set!",
-        description: `${values.medicineName} has been added to your schedule.`,
-    });
-    form.reset();
-    form.setValue("time", "09:00");
-    form.setValue("frequency", "daily");
-    form.setValue("startDate", undefined);
-    form.setValue("sound", null);
+    const newDocId = await addSchedule(firestore, user.uid, scheduleDataForDb);
+    
+    if (newDocId) {
+        if (soundUrl) {
+            // Because we can't save the blob URL to Firestore, we add it to the local state
+            // after the DB operation is successful.
+             setSchedules(prev => prev.map(s => s.id === newDocId ? {...s, soundUrl} : s));
+        }
+    
+        toast({
+            title: "Schedule Set!",
+            description: `${values.medicineName} has been added to your schedule.`,
+        });
+        
+        form.reset();
+        form.setValue("time", "09:00");
+        form.setValue("frequency", "daily");
+        form.setValue("startDate", undefined);
+        form.setValue("sound", null);
+    }
   }
 
   async function handleDeleteSchedule(id: string) {
@@ -187,7 +195,7 @@ export default function SchedulePage() {
         toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
         return;
     }
-    await deleteScheduleFromDB(firestore, user.uid, id);
+    deleteScheduleFromDB(firestore, user.uid, id);
     toast({
         title: "Schedule Removed",
         variant: "destructive",
