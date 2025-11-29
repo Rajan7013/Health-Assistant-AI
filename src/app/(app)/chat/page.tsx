@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { contextAwareChatbot, type ContextAwareChatbotInput } from '@/ai/flows/context-aware-chatbot';
-import { textToSpeechStream } from '@/ai/flows/text-to-speech-stream';
+import { textToSpeech, type TextToSpeechOutput } from '@/ai/flows/text-to-speech';
 import { Bot, Send, User, Loader2, Sparkles, Volume2, Pause } from 'lucide-react';
 
 type MessageIntent = 'MEDICINE' | 'SYMPTOM' | 'GENERAL' | 'EMERGENCY';
@@ -21,6 +21,9 @@ interface Message {
   content: string;
   intent?: MessageIntent;
 }
+
+// Simple in-memory cache for audio files
+const audioCache = new Map<string, string>();
 
 const SmartChips = ({ intent, onSelect }: { intent: MessageIntent, onSelect: (text: string) => void }) => {
   let chips: string[] = [];
@@ -70,7 +73,6 @@ export default function ChatPage() {
   const [audioLoadingMessageId, setAudioLoadingMessageId] = useState<string | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const mediaSourceRef = useRef<MediaSource | null>(null);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -81,6 +83,24 @@ export default function ChatPage() {
     }
   }, [messages]);
 
+  const getAudioForMessage = useCallback(async (text: string): Promise<string | null> => {
+    if (audioCache.has(text)) {
+      return audioCache.get(text)!;
+    }
+    
+    try {
+      const result: TextToSpeechOutput = await textToSpeech(text);
+      if (result.audioDataUri) {
+        audioCache.set(text, result.audioDataUri);
+        return result.audioDataUri;
+      }
+    } catch (error) {
+      console.error("Error generating audio:", error);
+    }
+    
+    return null;
+  }, []);
+
 
   const handlePlayAudio = useCallback(async (message: Message) => {
     const { id, content } = message;
@@ -88,77 +108,47 @@ export default function ChatPage() {
 
     if (!audioElement) return;
 
+    // If clicking the currently playing message, pause it.
     if (playingMessageId === id) {
       audioElement.pause();
       setPlayingMessageId(null);
       return;
     }
     
-    if (playingMessageId) {
+    // If another message is playing, pause it first.
+    if (playingMessageId && playingMessageId !== id) {
        audioElement.pause();
     }
-
+    
     setAudioLoadingMessageId(id);
-    setPlayingMessageId(null);
-
+    
     try {
-      const newMediaSource = new MediaSource();
-      mediaSourceRef.current = newMediaSource;
-      const url = URL.createObjectURL(newMediaSource);
-      audioElement.src = url;
-
-      newMediaSource.addEventListener('sourceopen', async () => {
-        URL.revokeObjectURL(url);
-        try {
-          const sourceBuffer = newMediaSource.addSourceBuffer('audio/mpeg');
-          
-          sourceBuffer.addEventListener('updateend', () => {
-              if (newMediaSource.readyState === "open" && !sourceBuffer.updating && audioElement.paused) {
-                 audioElement.play().catch(e => console.error("Playback error on updateend:", e));
-              }
-          });
-
-          const stream = textToSpeechStream(content);
-          for await (const chunk of stream) {
-            if (sourceBuffer.updating) {
-              await new Promise(resolve => sourceBuffer.addEventListener('updateend', resolve, { once: true }));
-            }
-            if (newMediaSource.readyState === 'open') {
-               sourceBuffer.appendBuffer(chunk);
-            } else {
-               break; 
-            }
-          }
-        } catch (e) {
-          console.error('Error with MediaSource or stream:', e);
-          setAudioLoadingMessageId(null);
-        }
-      });
+      const audioUrl = await getAudioForMessage(content);
       
-      audioElement.onplaying = () => {
-        setAudioLoadingMessageId(null);
-        setPlayingMessageId(id);
-      };
-
-      audioElement.load();
-      await audioElement.play().catch(e => {
-        if(e.name !== 'NotSupportedError') { // Ignore initial play error if stream not ready
-            console.error("Playback error on initial play:", e);
-        }
-      });
-
-    } catch (error) {
-      console.error("Failed to setup audio stream for the message:", error);
       setAudioLoadingMessageId(null);
+
+      if (audioUrl && audioElement) {
+        audioElement.src = audioUrl;
+        audioElement.play().catch(e => console.error("Audio playback error:", e));
+        setPlayingMessageId(id);
+      } else {
+        console.error("Failed to get audio for the message.");
+      }
+    } catch (error) {
+        console.error("Error in handlePlayAudio:", error);
+        setAudioLoadingMessageId(null);
     }
-  }, [playingMessageId]);
+  }, [playingMessageId, getAudioForMessage]);
+
 
   const handleAudioEnded = () => {
     setPlayingMessageId(null);
   };
   
   const handleAudioPause = () => {
-    if (audioRef.current && !audioRef.current.ended) {
+    // Only clear the playing ID if it was genuinely paused by the user or ended,
+    // not just because the source changed.
+    if (audioRef.current && audioRef.current.paused) {
       setPlayingMessageId(null);
     }
   };

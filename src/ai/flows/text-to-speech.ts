@@ -93,6 +93,7 @@ const textToSpeechFlow = ai.defineFlow(
         };
     } catch (error) {
         console.error("Error in textToSpeechFlow:", error);
+        // Return empty on any error to prevent crashing and allow graceful failure on the client.
         return { audioDataUri: '' };
     }
   }
