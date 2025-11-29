@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { contextAwareChatbot, type ContextAwareChatbotInput } from '@/ai/flows/context-aware-chatbot';
-import { textToSpeech } from '@/ai/flows/text-to-speech';
+import { textToSpeechStream } from '@/ai/flows/text-to-speech-stream';
 import { Bot, Send, User, Loader2, Sparkles, Volume2, Pause } from 'lucide-react';
 
 type MessageIntent = 'MEDICINE' | 'SYMPTOM' | 'GENERAL' | 'EMERGENCY';
@@ -69,7 +69,7 @@ export default function ChatPage() {
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [audioLoadingMessageId, setAudioLoadingMessageId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioCache = useRef(new Map<string, string>());
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
 
 
   useEffect(() => {
@@ -81,67 +81,80 @@ export default function ChatPage() {
     }
   }, [messages]);
 
-  // Proactive audio generation
-  const generateAndCacheAudio = useCallback(async (content: string) => {
-    if (!content.trim() || audioCache.current.has(content)) {
-      return;
-    }
-    try {
-      const { audioDataUri } = await textToSpeech(content);
-      if (audioDataUri) {
-        audioCache.current.set(content, audioDataUri);
-      }
-    } catch (error) {
-      console.error("Error pre-fetching audio:", error);
-    }
-  }, []);
 
   const handlePlayAudio = useCallback(async (message: Message) => {
     const { id, content } = message;
     const audioElement = audioRef.current;
-  
+
     if (!audioElement) return;
-  
-    // If clicking the currently playing message, pause it
-    if (playingMessageId === id) {
+
+    if (isAudioPlaying && playingMessageId === id) {
       audioElement.pause();
-      setPlayingMessageId(null);
       return;
     }
-  
-    // If another message is playing, pause it before starting the new one
-    if (playingMessageId) {
+
+    if (isAudioPlaying) {
       audioElement.pause();
     }
-  
-    let audioDataUri = audioCache.current.get(content);
-  
-    if (!audioDataUri) {
-      setAudioLoadingMessageId(id);
-      try {
-        const result = await textToSpeech(content);
-        if (result.audioDataUri) {
-          audioDataUri = result.audioDataUri;
-          audioCache.current.set(content, audioDataUri);
-        }
-      } catch (error) {
-        console.error("Error generating audio on-demand:", error);
-        audioDataUri = undefined;
-      } finally {
-        setAudioLoadingMessageId(null);
-      }
-    }
-  
-    if (audioDataUri) {
-      audioElement.src = audioDataUri;
-      audioElement.play().catch(e => console.error("Audio playback failed:", e));
-      setPlayingMessageId(id);
-    } else {
-      console.error("Failed to get audio for the message.");
-      setPlayingMessageId(null);
-    }
-  }, [playingMessageId]);
 
+    setPlayingMessageId(id);
+    setAudioLoadingMessageId(id);
+    setIsAudioPlaying(false);
+
+    try {
+      const stream = textToSpeechStream(content);
+      const mediaSource = new MediaSource();
+      audioElement.src = URL.createObjectURL(mediaSource);
+
+      mediaSource.addEventListener('sourceopen', async () => {
+        const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+        let hasPlayed = false;
+
+        sourceBuffer.addEventListener('updateend', () => {
+          if (!hasPlayed && !sourceBuffer.updating && mediaSource.readyState === 'open') {
+            audioElement.play().catch(e => console.error("Playback error:", e));
+            hasPlayed = true;
+            setIsAudioPlaying(true);
+            setAudioLoadingMessageId(null);
+          }
+        });
+        
+        for await (const chunk of stream) {
+            sourceBuffer.appendBuffer(chunk);
+        }
+        
+        // This is a failsafe for very short audio streams
+        setTimeout(() => {
+            if (!hasPlayed && !sourceBuffer.updating && mediaSource.readyState === 'open') {
+                 audioElement.play().catch(e => console.error("Playback error on short stream:", e));
+                 hasPlayed = true;
+                 setIsAudioPlaying(true);
+                 setAudioLoadingMessageId(null);
+            }
+        }, 500);
+
+      });
+
+    } catch (error) {
+      console.error("Failed to get audio for the message:", error);
+      setAudioLoadingMessageId(null);
+      setPlayingMessageId(null);
+      setIsAudioPlaying(false);
+    }
+  }, [playingMessageId, isAudioPlaying]);
+
+  const handleAudioEnded = () => {
+    setPlayingMessageId(null);
+    setIsAudioPlaying(false);
+  };
+  
+  const handleAudioPause = () => {
+    // Only set playing to false if it's a true pause, not end-of-track
+    if (audioRef.current && !audioRef.current.ended) {
+      setPlayingMessageId(null);
+      setIsAudioPlaying(false);
+    }
+  };
 
   const handleSendMessage = useCallback(async (messageContent: string) => {
     if (!messageContent.trim() || isLoading) return;
@@ -172,8 +185,6 @@ export default function ChatPage() {
         intent: result.intent,
       };
       setMessages((prev) => [...prev, assistantMessage]);
-      
-      generateAndCacheAudio(assistantMessage.content);
 
     } catch (error) {
       console.error('Error with chatbot:', error);
@@ -182,7 +193,7 @@ export default function ChatPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, messages, generateAndCacheAudio]);
+  }, [input, isLoading, messages]);
   
 
   const handleSubmit = async (e: FormEvent) => {
@@ -197,7 +208,7 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-10rem)] bg-background rounded-2xl shadow-2xl border">
-      <audio ref={audioRef} onEnded={() => setPlayingMessageId(null)} onPause={() => setPlayingMessageId(null)} />
+      <audio ref={audioRef} onEnded={handleAudioEnded} onPause={handleAudioPause} />
         {messages.length > 0 && (
             <div className='p-4 pb-0'>
                 <MedicalDisclaimer />
@@ -251,7 +262,7 @@ export default function ChatPage() {
                     >
                         {audioLoadingMessageId === message.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (playingMessageId === message.id) ? (
+                        ) : (isAudioPlaying && playingMessageId === message.id) ? (
                             <Pause className="h-4 w-4" />
                         ) : (
                             <Volume2 className="h-4 w-4" />
