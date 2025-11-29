@@ -4,7 +4,7 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { ArrowRight, Bot, Book, Calendar, History, Pill, Stethoscope } from 'lucide-react';
+import { ArrowRight, Bot, BookHeart, CalendarClock, History, Pill, Stethoscope } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -14,22 +14,30 @@ const quickAccessItems = [
     {
         title: 'Schedule',
         href: '/schedule',
-        icon: Calendar,
+        icon: CalendarClock,
+        color: 'bg-blue-100 dark:bg-blue-900/30',
+        iconColor: 'text-blue-600 dark:text-blue-400'
     },
     {
         title: 'Library',
         href: '/diseases',
-        icon: Book,
+        icon: BookHeart,
+        color: 'bg-green-100 dark:bg-green-900/30',
+        iconColor: 'text-green-600 dark:text-green-400'
     },
     {
         title: 'Medications',
-        href: '/schedule', // Assuming this links to schedule for now
+        href: '/schedule',
         icon: Pill,
+        color: 'bg-red-100 dark:bg-red-900/30',
+        iconColor: 'text-red-600 dark:text-red-400'
     },
     {
         title: 'History',
-        href: '#', // TBD
+        href: '#',
         icon: History,
+        color: 'bg-yellow-100 dark:bg-yellow-900/30',
+        iconColor: 'text-yellow-600 dark:text-yellow-400'
     },
 ];
 
@@ -95,11 +103,11 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-2 gap-4">
                     {quickAccessItems.map(item => (
                         <Link href={item.href} key={item.title}>
-                            <div className="flex flex-col items-center justify-center p-4 bg-secondary/50 hover:bg-secondary rounded-xl aspect-square transition-colors">
-                                <div className="p-3 bg-white rounded-full shadow-sm mb-2">
-                                    <item.icon className="h-6 w-6 text-primary" />
+                            <div className={`flex flex-col items-center justify-center p-4 ${item.color} hover:opacity-90 rounded-xl aspect-square transition-all`}>
+                                <div className={`p-3 bg-white rounded-full shadow-sm mb-2`}>
+                                    <item.icon className={`h-6 w-6 ${item.iconColor}`} />
                                 </div>
-                                <p className="text-sm font-semibold text-center">{item.title}</p>
+                                <p className="text-sm font-semibold text-center text-foreground/80">{item.title}</p>
                             </div>
                         </Link>
                     ))}
