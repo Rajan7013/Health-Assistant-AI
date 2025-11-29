@@ -45,30 +45,35 @@ const navItems = [
     icon: LayoutDashboard,
     label: 'Dashboard',
     color: 'text-sky-500',
+    hoverColor: 'hover:bg-sky-500/10',
   },
   {
     href: '/symptom-checker',
     icon: Stethoscope,
     label: 'Symptom Checker',
     color: 'text-indigo-500',
+    hoverColor: 'hover:bg-indigo-500/10',
   },
   {
     href: '/chat',
     icon: Bot,
     label: 'AI Chat',
     color: 'text-purple-500',
+    hoverColor: 'hover:bg-purple-500/10',
   },
   {
     href: '/schedule',
     icon: CalendarClock,
     label: 'Schedule',
     color: 'text-blue-500',
+    hoverColor: 'hover:bg-blue-500/10',
   },
   {
     href: '/diseases',
     icon: BookHeart,
     label: 'Diseases',
     color: 'text-green-500',
+    hoverColor: 'hover:bg-green-500/10',
   },
 ];
 
@@ -98,7 +103,8 @@ const DesktopNav = ({ pathname }: { pathname: string }) => {
                     key={item.label}
                     href={item.href}
                     className={cn(
-                        "relative rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-all duration-300 hover:text-foreground hover:bg-background/50 hover:shadow-[0_0_15px_-3px_rgba(0,0,0,0.1),0_4px_6px_-4px_rgba(0,0,0,0.1)]",
+                        "relative rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-all duration-300 hover:text-foreground hover:shadow-[0_0_15px_-3px_rgba(0,0,0,0.1),0_4px_6px_-4px_rgba(0,0,0,0.1)]",
+                        item.hoverColor,
                         pathname === item.href && "bg-background text-foreground shadow-md"
                     )}
                 >
