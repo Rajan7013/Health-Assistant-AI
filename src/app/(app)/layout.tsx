@@ -138,8 +138,6 @@ export default function AppLayout({
     if (!user || !firestore) return;
 
     const unsubscribe = getSchedules(firestore, user.uid, (schedules) => {
-        // This is a placeholder for where sound URLs would be managed if they were stored in a central DB
-        // For now, we are relying on a simplified logic which this architecture enables
         const interval = setInterval(() => {
             const now = new Date();
             const currentTime = format(now, "HH:mm:ss");
@@ -178,8 +176,6 @@ export default function AppLayout({
         description: `It's time to take your ${schedule.medicineName}.`,
     });
     
-    // The sound logic is now simplified. A real implementation would fetch a stored sound URL.
-    // For now, it will play a default system sound if one is configured or available via browser APIs.
     const customSoundUrl = localStorage.getItem(`sound_${schedule.id}`);
     if (customSoundUrl && audioRef.current) {
         audioRef.current.src = customSoundUrl;
