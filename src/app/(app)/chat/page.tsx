@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { contextAwareChatbot, ContextAwareChatbotInput } from '@/ai/flows/context-aware-chatbot';
-import { Bot, Send, User, Loader2, Sparkles } from 'lucide-react';
+import { textToSpeech } from '@/ai/flows/text-to-speech';
+import { Bot, Send, User, Loader2, Sparkles, Volume2, Pause, VolumeX } from 'lucide-react';
 
 type MessageIntent = 'MEDICINE' | 'SYMPTOM' | 'GENERAL' | 'EMERGENCY';
 
@@ -63,6 +64,14 @@ export default function ChatPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  
+  const [audioState, setAudioState] = useState<{
+    playingMessageId: string | null;
+    isLoading: boolean;
+    error: string | null;
+  }>({ playingMessageId: null, isLoading: false, error: null });
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -72,6 +81,52 @@ export default function ChatPage() {
       });
     }
   }, [messages]);
+
+  const handleAudioEnded = () => {
+    setAudioState({ playingMessageId: null, isLoading: false, error: null });
+  };
+  
+  useEffect(() => {
+    const audioElement = audioRef.current;
+    if (audioElement) {
+      audioElement.addEventListener('ended', handleAudioEnded);
+      return () => {
+        audioElement.removeEventListener('ended', handleAudioEnded);
+      };
+    }
+  }, [audioRef]);
+
+
+  const handlePlayAudio = async (message: Message) => {
+    const { id, content } = message;
+
+    if (audioState.playingMessageId === id && audioRef.current) {
+        if (!audioRef.current.paused) {
+            audioRef.current.pause();
+        } else {
+            audioRef.current.play();
+        }
+        return;
+    }
+    
+    if (audioState.isLoading) return;
+    
+    setAudioState({ playingMessageId: id, isLoading: true, error: null });
+
+    try {
+        const { audioDataUri } = await textToSpeech(content);
+        if (audioRef.current) {
+            audioRef.current.src = audioDataUri;
+            audioRef.current.play();
+            setAudioState({ playingMessageId: id, isLoading: false, error: null });
+        }
+    } catch (error) {
+        console.error("Error generating speech:", error);
+        setAudioState({ playingMessageId: null, isLoading: false, error: "Could not generate audio." });
+    }
+  };
+
+
   
   const handleSendMessage = useCallback(async (messageContent: string) => {
     if (!messageContent.trim() || isLoading) return;
@@ -125,6 +180,7 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-10rem)] bg-background rounded-2xl shadow-2xl border">
+      <audio ref={audioRef} />
         {messages.length > 0 && (
             <div className='p-4 pb-0'>
                 <MedicalDisclaimer />
@@ -162,23 +218,45 @@ export default function ChatPage() {
               )}
               <div
                 className={cn(
-                  'max-w-[85%] rounded-2xl p-4 text-sm shadow-md',
+                  'max-w-[85%] rounded-2xl text-sm shadow-md group relative',
                   message.role === 'user'
-                    ? 'bg-primary text-primary-foreground rounded-br-lg'
+                    ? 'bg-primary text-primary-foreground rounded-br-lg p-4'
                     : 'bg-card border rounded-bl-lg'
                 )}
               >
-                <article className="prose prose-sm dark:prose-invert prose-p:my-2 prose-headings:my-3 break-words">
-                   <ReactMarkdown
-                     components={{
-                        a: ({node, ...props}) => <a className="text-primary underline hover:opacity-80" {...props} />,
-                      }}
-                   >
-                    {message.content}
-                    </ReactMarkdown>
-                </article>
+                 {message.role === 'assistant' && (
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        className="absolute -top-3 -right-3 h-7 w-7 rounded-full bg-background border text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handlePlayAudio(message)}
+                        disabled={audioState.isLoading && audioState.playingMessageId !== message.id}
+                    >
+                        {audioState.isLoading && audioState.playingMessageId === message.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : audioState.playingMessageId === message.id && audioRef.current && !audioRef.current.paused ? (
+                            <Pause className="h-4 w-4" />
+                        ) : (
+                            <Volume2 className="h-4 w-4" />
+                        )}
+                    </Button>
+                )}
+                <div className={cn(message.role === 'assistant' && 'p-4')}>
+                  <article className="prose prose-sm dark:prose-invert prose-p:my-2 prose-headings:my-3 break-words">
+                    <ReactMarkdown
+                      components={{
+                          a: ({node, ...props}) => <a className="text-primary underline hover:opacity-80" {...props} />,
+                        }}
+                    >
+                      {message.content}
+                      </ReactMarkdown>
+                  </article>
+                </div>
+
                 {message.role === 'assistant' && index === messages.length - 1 && !isLoading && (
-                    <SmartChips intent={message.intent || 'GENERAL'} onSelect={handleChipSelect} />
+                    <div className="p-4 pt-0">
+                      <SmartChips intent={message.intent || 'GENERAL'} onSelect={handleChipSelect} />
+                    </div>
                 )}
               </div>
               {message.role === 'user' && (
@@ -221,5 +299,3 @@ export default function ChatPage() {
     </div>
   );
 }
-
-    
