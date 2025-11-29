@@ -53,7 +53,8 @@ const formSchema = z.object({
     .refine(
       (files) => ACCEPTED_AUDIO_TYPES.includes(files?.[0]?.type),
       ".mp3, .wav and .ogg files are accepted."
-    ),
+    )
+    .optional(),
 })
 
 export type Schedule = z.infer<typeof formSchema> & { id: string; soundUrl?: string; };
@@ -85,7 +86,8 @@ export default function SchedulePage() {
     if (!user || !firestore) return;
 
     const unsubscribe = getSchedules(firestore, user.uid, (newSchedules) => {
-        setSchedules(newSchedules);
+        // This real-time listener will keep our state in sync with Firestore.
+        setSchedules(newSchedules.map(s => ({ ...s, soundUrl: s.soundUrl || '' })));
     });
 
     return () => unsubscribe();
@@ -139,13 +141,10 @@ export default function SchedulePage() {
   const soundRef = form.register("sound");
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user) {
+    if (!user || !firestore) {
         toast({ title: "Error", description: "You must be logged in to set a schedule.", variant: "destructive" });
         return;
     }
-    
-    const soundFile = values.sound[0];
-    const soundUrl = URL.createObjectURL(soundFile);
     
     // We don't save the sound file to Firestore, just the metadata.
     // The soundUrl is temporary and will be stored in local state.
@@ -156,18 +155,7 @@ export default function SchedulePage() {
         frequency: values.frequency,
     };
     
-    const newScheduleId = await addSchedule(firestore, user.uid, scheduleDataForDb);
-    
-    if (newScheduleId) {
-       const newScheduleForState: Schedule = {
-            ...scheduleDataForDb,
-            id: newScheduleId,
-            sound: values.sound,
-            soundUrl: soundUrl,
-        };
-        setSchedules(prev => [...prev, newScheduleForState]);
-    }
-
+    await addSchedule(firestore, user.uid, scheduleDataForDb);
 
     toast({
         title: "Schedule Set!",
@@ -181,17 +169,12 @@ export default function SchedulePage() {
   }
 
   async function handleDeleteSchedule(id: string) {
-    if (!user) {
+    if (!user || !firestore) {
         toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
         return;
     }
     await deleteScheduleFromDB(firestore, user.uid, id);
-    setSchedules(prev => prev.filter(s => {
-        if (s.id === id && s.soundUrl) {
-            URL.revokeObjectURL(s.soundUrl); // Clean up memory
-        }
-        return s.id !== id;
-    }));
+    // The real-time listener will automatically update the state, no need for manual removal.
     toast({
         title: "Schedule Removed",
         variant: "destructive",
@@ -320,7 +303,7 @@ export default function SchedulePage() {
                                 name="sound"
                                 render={({ field }) => (
                                    <FormItem>
-                                      <FormLabel className="font-semibold">Reminder Sound</FormLabel>
+                                      <FormLabel className="font-semibold">Reminder Sound (Optional)</FormLabel>
                                       <FormControl>
                                          <Input type="file" accept="audio/*" {...soundRef} />
                                       </FormControl>
