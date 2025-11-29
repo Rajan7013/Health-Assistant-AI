@@ -1,3 +1,4 @@
+
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -57,6 +58,22 @@ const initialSchedules: Schedule[] = [
     { id: 2, medicineName: "Metformin", startDate: new Date(), time: "20:00", frequency: "daily", sound: "chime" },
 ]
 
+const cardColors = [
+    "bg-sky-100 dark:bg-sky-900/30",
+    "bg-green-100 dark:bg-green-900/30",
+    "bg-amber-100 dark:bg-amber-900/30",
+    "bg-rose-100 dark:bg-rose-900/30",
+    "bg-indigo-100 dark:bg-indigo-900/30",
+]
+
+const iconColors = [
+    "text-sky-600 dark:text-sky-400",
+    "text-green-600 dark:text-green-400",
+    "text-amber-600 dark:text-amber-400",
+    "text-rose-600 dark:text-rose-400",
+    "text-indigo-600 dark:text-indigo-400",
+]
+
 export default function SchedulePage() {
   const [schedules, setSchedules] = useState<Schedule[]>(initialSchedules);
   const { toast } = useToast();
@@ -79,7 +96,6 @@ export default function SchedulePage() {
         description: `${values.medicineName} has been added to your schedule.`,
     });
     form.reset();
-    // Re-set default values for controlled components that need it
     form.setValue("time", "09:00");
     form.setValue("frequency", "daily");
     form.setValue("sound", "default");
@@ -96,16 +112,16 @@ export default function SchedulePage() {
   }
 
   return (
-    <div className="grid md:grid-cols-3 gap-8">
-        <div className="md:col-span-1">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <PlusCircle /> Add New Medicine
+    <div className="grid md:grid-cols-5 gap-8">
+        <div className="md:col-span-2">
+            <Card className="shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-primary to-blue-500 text-primary-foreground rounded-t-lg">
+                    <CardTitle className="flex items-center gap-2 text-2xl">
+                        <PlusCircle /> Add New Reminder
                     </CardTitle>
-                    <CardDescription>Fill out the form to add a new medication reminder.</CardDescription>
+                    <CardDescription className="text-primary-foreground/80">Fill out the form to add a new medication reminder.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-6">
                      <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                             <FormField
@@ -113,7 +129,7 @@ export default function SchedulePage() {
                             name="medicineName"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Medicine Name</FormLabel>
+                                <FormLabel className="font-semibold">Medicine Name</FormLabel>
                                 <FormControl>
                                     <Input placeholder="e.g., Paracetamol" {...field} />
                                 </FormControl>
@@ -122,13 +138,13 @@ export default function SchedulePage() {
                             )}
                             />
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <FormField
                                     control={form.control}
                                     name="startDate"
                                     render={({ field }) => (
                                         <FormItem className="flex flex-col">
-                                        <FormLabel>Start Date</FormLabel>
+                                        <FormLabel className="font-semibold">Start Date</FormLabel>
                                         <Popover>
                                             <PopoverTrigger asChild>
                                             <FormControl>
@@ -169,7 +185,7 @@ export default function SchedulePage() {
                                     name="time"
                                     render={({ field }) => (
                                         <FormItem>
-                                        <FormLabel>Time</FormLabel>
+                                        <FormLabel className="font-semibold">Time</FormLabel>
                                         <FormControl>
                                             <Input type="time" {...field} />
                                         </FormControl>
@@ -184,12 +200,12 @@ export default function SchedulePage() {
                                 name="frequency"
                                 render={({ field }) => (
                                     <FormItem className="space-y-3">
-                                    <FormLabel>Frequency</FormLabel>
+                                    <FormLabel className="font-semibold">Frequency</FormLabel>
                                     <FormControl>
                                         <RadioGroup
                                         onValueChange={field.onChange}
                                         defaultValue={field.value}
-                                        className="flex space-x-4"
+                                        className="flex space-x-4 pt-1"
                                         >
                                         <FormItem className="flex items-center space-x-2 space-y-0">
                                             <FormControl>
@@ -215,7 +231,7 @@ export default function SchedulePage() {
                                 name="sound"
                                 render={({ field }) => (
                                     <FormItem>
-                                    <FormLabel>Alarm Sound</FormLabel>
+                                    <FormLabel className="font-semibold">Alarm Sound</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl>
                                         <SelectTrigger>
@@ -234,20 +250,20 @@ export default function SchedulePage() {
                                 )}
                             />
                             
-                            <Button type="submit" className="w-full">Set Reminder</Button>
+                            <Button type="submit" size="lg" className="w-full bg-gradient-to-r from-primary to-blue-500 text-white hover:opacity-90 font-bold">Set Reminder</Button>
                         </form>
                     </Form>
                 </CardContent>
             </Card>
         </div>
 
-        <div className="md:col-span-2">
-            <h2 className="font-headline text-3xl font-bold mb-4">Current Schedule</h2>
+        <div className="md:col-span-3">
+            <h1 className="font-headline text-3xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400">Current Medication Schedule</h1>
             <div className="space-y-4">
-                {schedules.length > 0 ? schedules.map(schedule => (
-                    <Card key={schedule.id} className="flex items-center p-4">
-                        <div className="p-3 bg-primary/10 rounded-full mr-4">
-                            <Pill className="h-6 w-6 text-primary" />
+                {schedules.length > 0 ? schedules.map((schedule, index) => (
+                    <Card key={schedule.id} className={cn("flex items-center p-4 transition-shadow hover:shadow-lg", cardColors[index % cardColors.length])}>
+                        <div className="p-3 bg-white rounded-full mr-4 shadow">
+                            <Pill className={cn("h-6 w-6", iconColors[index % iconColors.length])} />
                         </div>
                         <div className="flex-1">
                             <p className="font-bold text-lg">{schedule.medicineName}</p>
@@ -256,21 +272,21 @@ export default function SchedulePage() {
                             </p>
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground bg-background/50 rounded-full px-3 py-1">
                                 <Bell className="h-4 w-4" />
-                                <span>{schedule.sound}</span>
+                                <span className="capitalize">{schedule.sound}</span>
                             </div>
-                            <Button variant="ghost" size="icon" onClick={() => deleteSchedule(schedule.id)}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
+                            <Button variant="ghost" size="icon" className="hover:bg-destructive/10" onClick={() => deleteSchedule(schedule.id)}>
+                                <Trash2 className="h-5 w-5 text-destructive" />
                                 <span className="sr-only">Delete</span>
                             </Button>
                         </div>
                     </Card>
                 )) : (
-                    <div className="text-center py-12 border-2 border-dashed rounded-lg">
-                        <CalendarClock className="mx-auto h-12 w-12 text-muted-foreground" />
-                        <h3 className="mt-2 text-xl font-semibold">No Schedules Yet</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">Add a medicine reminder using the form.</p>
+                    <div className="text-center py-16 px-6 border-2 border-dashed rounded-lg bg-muted/50">
+                        <CalendarClock className="mx-auto h-16 w-16 text-primary/40" />
+                        <h3 className="mt-4 text-xl font-semibold">No Schedules Yet</h3>
+                        <p className="mt-1 text-muted-foreground">Use the form on the left to add a new medicine reminder.</p>
                     </div>
                 )}
             </div>
@@ -278,3 +294,5 @@ export default function SchedulePage() {
     </div>
   );
 }
+
+    
