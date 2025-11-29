@@ -20,13 +20,11 @@ import {
 } from '@/components/ui/sheet';
 import {
   Bot,
-  BookHeart,
   CalendarClock,
   LayoutDashboard,
   Menu,
   LogOut,
   User,
-  Stethoscope,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/icons';
@@ -46,11 +44,6 @@ const navItems = [
     label: 'Dashboard',
   },
   {
-    href: '/symptom-checker',
-    icon: Stethoscope,
-    label: 'Symptom Checker',
-  },
-  {
     href: '/chat',
     icon: Bot,
     label: 'AI Chat',
@@ -59,11 +52,6 @@ const navItems = [
     href: '/schedule',
     icon: CalendarClock,
     label: 'Schedule',
-  },
-  {
-    href: '/diseases',
-    icon: BookHeart,
-    label: 'Diseases',
   },
 ];
 

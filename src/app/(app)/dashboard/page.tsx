@@ -22,14 +22,6 @@ const quickAccessItems = [
         shadowColor: 'hover:shadow-blue-500/30'
     },
     {
-        title: 'Library',
-        href: '/diseases',
-        icon: BookHeart,
-        color: 'bg-green-100 dark:bg-green-900/30',
-        iconColor: 'text-green-600 dark:text-green-400',
-        shadowColor: 'hover:shadow-green-500/30'
-    },
-    {
         title: 'Medications',
         href: '/schedule',
         icon: Pill,
@@ -49,17 +41,8 @@ const quickAccessItems = [
 
 const coreFeatures = [
     {
-        title: 'Symptom Checker',
-        description: 'Analyze your symptoms with our AI for insights.',
-        href: '/symptom-checker',
-        icon: Stethoscope,
-        color: 'bg-indigo-100 dark:bg-indigo-900/30',
-        iconColor: 'text-indigo-600 dark:text-indigo-400',
-        shadowColor: 'hover:shadow-indigo-500/30',
-    },
-    {
         title: 'AI Health Assistant',
-        description: 'Ask our AI about medicines and health advice.',
+        description: 'Ask our AI about symptoms, medicines, and health advice.',
         href: '/chat',
         icon: Bot,
         color: 'bg-purple-100 dark:bg-purple-900/30',
@@ -93,12 +76,6 @@ export default function DashboardPage() {
                 </p>
                 <div className="mt-8 flex flex-wrap gap-4">
                     <Button size="lg" variant="secondary" className="bg-white/90 hover:bg-white text-primary font-bold shadow-md" asChild>
-                        <Link href="/symptom-checker">
-                            <Stethoscope className="mr-2 h-5 w-5" />
-                            Check Symptoms
-                        </Link>
-                    </Button>
-                    <Button size="lg" variant="secondary" className="bg-white/90 hover:bg-white text-primary font-bold shadow-md" asChild>
                         <Link href="/chat">
                             <Bot className="mr-2 h-5 w-5" />
                             Ask Our AI
@@ -129,8 +106,8 @@ export default function DashboardPage() {
       </div>
 
       <div>
-        <h2 className="text-2xl font-bold mb-4">Explore Our Core Features</h2>
-        <div className="grid gap-6 md:grid-cols-2">
+        <h2 className="text-2xl font-bold mb-4">Explore Our Core Feature</h2>
+        <div className="grid gap-6 md:grid-cols-1">
             {coreFeatures.map(feature => (
                  <Link href={feature.href} key={feature.title}>
                     <div className={`p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col text-center items-center gap-4 ${feature.color} ${feature.shadowColor}`}>
