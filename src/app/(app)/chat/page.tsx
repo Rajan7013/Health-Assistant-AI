@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -71,6 +70,7 @@ export default function ChatPage() {
   
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [audioLoadingMessageId, setAudioLoadingMessageId] = useState<string | null>(null);
+  const [audioError, setAudioError] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -83,30 +83,42 @@ export default function ChatPage() {
   }, [messages]);
 
   const getAudioForMessage = useCallback(async (text: string): Promise<string | null> => {
+    // Check cache first
     if (audioCache.has(text)) {
+      console.log('TTS: Using cached audio');
       return audioCache.get(text)!;
     }
     
     try {
+      console.log('TTS: Requesting audio generation...');
       const result = await textToSpeech(text);
-      if (result && result.audioDataUri) {
+      
+      if (result && result.success && result.audioDataUri) {
+        console.log('TTS: Audio generated successfully');
         audioCache.set(text, result.audioDataUri);
         return result.audioDataUri;
+      } else {
+        const errorMsg = result?.error || 'Unknown error';
+        console.error("TTS: Failed to generate audio:", errorMsg);
+        throw new Error(errorMsg);
       }
     } catch (error) {
-      console.error("Error generating audio:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error("TTS: Error generating audio:", errorMessage);
+      throw error;
     }
-    
-    return null;
   }, []);
 
   const handlePlayAudio = useCallback(async (message: Message) => {
     const { id, content } = message;
     const audioElement = audioRef.current;
   
-    if (!audioElement) return;
+    if (!audioElement) {
+      console.error("Audio element not found");
+      return;
+    }
   
-    // If clicking the currently playing message, pause it.
+    // If clicking the currently playing message, pause it
     if (playingMessageId === id) {
       audioElement.pause();
       setPlayingMessageId(null);
@@ -119,36 +131,36 @@ export default function ChatPage() {
     }
   
     setAudioLoadingMessageId(id);
+    setAudioError(null);
+    
     try {
       const audioUrl = await getAudioForMessage(content);
   
       if (audioUrl) {
         audioElement.src = audioUrl;
-        audioElement.play().catch(e => {
-            console.error("Audio playback error:", e);
-            setPlayingMessageId(null);
-        });
+        await audioElement.play();
         setPlayingMessageId(id);
-      } else {
-        console.error("Failed to get audio for the message.");
-        setPlayingMessageId(null);
+        console.log('TTS: Audio playback started');
       }
     } catch (error) {
-      console.error("Error in handlePlayAudio:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate audio';
+      console.error("Error in handlePlayAudio:", errorMessage);
+      setAudioError(errorMessage);
       setPlayingMessageId(null);
+      
+      // Clear error after 3 seconds
+      setTimeout(() => setAudioError(null), 3000);
     } finally {
       setAudioLoadingMessageId(null);
     }
   }, [playingMessageId, getAudioForMessage]);
 
-
   const handleAudioEnded = () => {
+    console.log('TTS: Audio playback ended');
     setPlayingMessageId(null);
   };
   
   const handleAudioPause = () => {
-    // This is fired when audio is paused for any reason, including when we manually call pause()
-    // To prevent wrongly clearing the state when we switch tracks, check if the pause was "natural"
     if (audioRef.current && audioRef.current.paused) {
       setPlayingMessageId(null);
     }
@@ -157,17 +169,24 @@ export default function ChatPage() {
   const handleSendMessage = useCallback(async (messageContent: string) => {
     if (!messageContent.trim() || isLoading) return;
   
-    const userMessage: Message = { id: Date.now().toString(), role: 'user', content: messageContent };
+    const userMessage: Message = { 
+      id: Date.now().toString(), 
+      role: 'user', 
+      content: messageContent 
+    };
     setMessages((prev) => [...prev, userMessage]);
     
     if (messageContent === input) {
-        setInput('');
+      setInput('');
     }
     
     setIsLoading(true);
   
     try {
-      const chatHistory = messages.map(msg => ({ role: msg.role, content: msg.content }));
+      const chatHistory = messages.map(msg => ({ 
+        role: msg.role, 
+        content: msg.content 
+      }));
       
       const payload: ContextAwareChatbotInput = {
         message: messageContent,
@@ -186,14 +205,17 @@ export default function ChatPage() {
 
     } catch (error) {
       console.error('Error with chatbot:', error);
-      const errorMessage: Message = { id: 'error-' + Date.now(), role: 'assistant', content: "Sorry, I'm having trouble connecting right now. Please try again in a moment." };
+      const errorMessage: Message = { 
+        id: 'error-' + Date.now(), 
+        role: 'assistant', 
+        content: "Sorry, I'm having trouble connecting right now. Please try again in a moment." 
+      };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
   }, [input, isLoading, messages]);
   
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     handleSendMessage(input);
@@ -203,30 +225,38 @@ export default function ChatPage() {
     handleSendMessage(chipText);
   };
 
-
   return (
     <div className="flex flex-col h-[calc(100vh-10rem)] bg-background rounded-2xl shadow-2xl border">
       <audio ref={audioRef} onEnded={handleAudioEnded} onPause={handleAudioPause} />
-        {messages.length > 0 && (
-            <div className='p-4 pb-0'>
-                <MedicalDisclaimer />
-            </div>
-        )}
+      
+      {messages.length > 0 && (
+        <div className='p-4 pb-0'>
+          <MedicalDisclaimer />
+        </div>
+      )}
+      
+      {audioError && (
+        <div className="mx-4 mt-2 p-2 bg-red-500/10 border border-red-500/50 rounded-lg text-xs text-red-600 dark:text-red-400 text-center">
+          Audio unavailable: {audioError}
+        </div>
+      )}
+      
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
         <div className="space-y-6">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground pt-16">
               <div className="relative mb-4">
-                 <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse-slow"></div>
-                 <Bot className="relative h-20 w-20 text-primary animate-pulse-slow-bounce" />
+                <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse-slow"></div>
+                <Bot className="relative h-20 w-20 text-primary animate-pulse-slow-bounce" />
               </div>
               <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400">HealthMind AI</h2>
               <p className="mt-2 max-w-sm">Your personal AI health assistant. Ask me about medicines, diseases, and more.</p>
-               <div className='p-4 pt-8 w-full max-w-md'>
+              <div className='p-4 pt-8 w-full max-w-md'>
                 <MedicalDisclaimer />
-            </div>
+              </div>
             </div>
           )}
+          
           {messages.map((message, index) => (
             <div
               key={message.id}
@@ -237,11 +267,12 @@ export default function ChatPage() {
             >
               {message.role === 'assistant' && (
                 <Avatar className="h-8 w-8 border-2 border-primary/50 shadow-lg">
-                   <div className="bg-primary flex items-center justify-center h-full w-full">
-                     <Sparkles className="h-5 w-5 text-primary-foreground" />
-                   </div>
+                  <div className="bg-primary flex items-center justify-center h-full w-full">
+                    <Sparkles className="h-5 w-5 text-primary-foreground" />
+                  </div>
                 </Avatar>
               )}
+              
               <div
                 className={cn(
                   'max-w-[85%] rounded-2xl text-sm shadow-md group relative',
@@ -250,63 +281,68 @@ export default function ChatPage() {
                     : 'bg-card border rounded-bl-lg'
                 )}
               >
-                 {message.role === 'assistant' && (
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        className="absolute -top-3 -right-3 h-7 w-7 rounded-full bg-background border text-primary opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
-                        onClick={() => handlePlayAudio(message)}
-                        disabled={audioLoadingMessageId === message.id}
-                    >
-                        {audioLoadingMessageId === message.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (playingMessageId === message.id) ? (
-                            <Pause className="h-4 w-4" />
-                        ) : (
-                            <Volume2 className="h-4 w-4" />
-                        )}
-                    </Button>
+                {message.role === 'assistant' && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="absolute -top-3 -right-3 h-7 w-7 rounded-full bg-background border text-primary opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                    onClick={() => handlePlayAudio(message)}
+                    disabled={audioLoadingMessageId === message.id}
+                    title={playingMessageId === message.id ? "Pause audio" : "Play audio"}
+                  >
+                    {audioLoadingMessageId === message.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (playingMessageId === message.id) ? (
+                      <Pause className="h-4 w-4" />
+                    ) : (
+                      <Volume2 className="h-4 w-4" />
+                    )}
+                  </Button>
                 )}
+                
                 <div className={cn(message.role === 'assistant' && 'p-4')}>
                   <article className="prose prose-sm dark:prose-invert prose-p:my-2 prose-headings:my-3 break-words">
                     <ReactMarkdown
                       components={{
-                          a: ({node, ...props}) => <a className="text-primary underline hover:opacity-80" {...props} />,
-                        }}
+                        a: ({node, ...props}) => <a className="text-primary underline hover:opacity-80" {...props} />,
+                      }}
                     >
                       {message.content}
-                      </ReactMarkdown>
+                    </ReactMarkdown>
                   </article>
                 </div>
 
                 {message.role === 'assistant' && index === messages.length - 1 && !isLoading && (
-                    <div className="p-4 pt-0">
-                      <SmartChips intent={message.intent || 'GENERAL'} onSelect={handleChipSelect} />
-                    </div>
+                  <div className="p-4 pt-0">
+                    <SmartChips intent={message.intent || 'GENERAL'} onSelect={handleChipSelect} />
+                  </div>
                 )}
               </div>
+              
               {message.role === 'user' && (
-                 <Avatar className="h-8 w-8 shadow-lg">
+                <Avatar className="h-8 w-8 shadow-lg">
                   <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
                 </Avatar>
               )}
             </div>
           ))}
+          
           {isLoading && (
             <div className="flex items-start gap-3 justify-start">
               <Avatar className="h-8 w-8 border-2 border-primary/50 shadow-lg">
-                 <div className="bg-primary flex items-center justify-center h-full w-full">
-                   <Sparkles className="h-5 w-5 text-primary-foreground" />
-                 </div>
+                <div className="bg-primary flex items-center justify-center h-full w-full">
+                  <Sparkles className="h-5 w-5 text-primary-foreground" />
+                </div>
               </Avatar>
               <div className="max-w-md rounded-2xl p-3 text-sm shadow-md bg-card flex items-center border">
-                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                 <span className="ml-2 animate-pulse text-muted-foreground">AI is thinking...</span>
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <span className="ml-2 animate-pulse text-muted-foreground">AI is thinking...</span>
               </div>
             </div>
           )}
         </div>
       </ScrollArea>
+      
       <div className="border-t bg-card p-4 rounded-b-2xl">
         <form onSubmit={handleSubmit} className="relative">
           <Input
@@ -317,7 +353,12 @@ export default function ChatPage() {
             disabled={isLoading}
             autoFocus
           />
-          <Button type="submit" size="icon" disabled={isLoading || !input.trim()} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full h-9 w-9 bg-primary hover:bg-primary/90 transition-opacity">
+          <Button 
+            type="submit" 
+            size="icon" 
+            disabled={isLoading || !input.trim()} 
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full h-9 w-9 bg-primary hover:bg-primary/90 transition-opacity"
+          >
             <Send className="h-4 w-4" />
           </Button>
         </form>

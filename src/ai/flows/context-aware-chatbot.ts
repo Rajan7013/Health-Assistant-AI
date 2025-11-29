@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -25,7 +24,7 @@ export type ContextAwareChatbotInput = z.infer<typeof ContextAwareChatbotInputSc
 
 const ContextAwareChatbotOutputSchema = z.object({
   response: z.string().describe('The chatbot response.'),
-  intent: z.enum(['MEDICINE', 'SYMPTOM', 'GENERAL']).describe('The primary intent of the user\'s query.'),
+  intent: z.enum(['MEDICINE', 'SYMPTOM', 'GENERAL', 'EMERGENCY']).describe('The primary intent of the user\'s query.'),
 });
 
 export type ContextAwareChatbotOutput = z.infer<typeof ContextAwareChatbotOutputSchema>;
@@ -40,29 +39,43 @@ const shouldRouteToMedicineSearch = ai.definePrompt({
     
     Chat History:
     {{#each chatHistory}}
-        User: {{{this.content}}}
+        {{#ifEquals this.role "user"}}User{{else}}Assistant{{/ifEquals}}: {{{this.content}}}
     {{/each}}
 
     User message: {{{message}}}
     `,
+    helpers: {
+      ifEquals: function(arg1: any, arg2: any, options: any) {
+        return (arg1 == arg2) ? options.fn(this) : options.inverse(this);
+      }
+    },
 });
 
 
 export async function contextAwareChatbot(input: ContextAwareChatbotInput): Promise<ContextAwareChatbotOutput> {
-    const { output } = await shouldRouteToMedicineSearch(input);
-    
-    if (output?.shouldRoute && output.medicineName) {
-        const medicineResult = await getMedicineInformation({
-            medicineName: output.medicineName,
-            chatHistory: input.chatHistory,
-        });
-        return {
-            ...medicineResult,
-            intent: 'MEDICINE', // Ensure intent is set correctly
-        };
-    }
+    try {
+      const { output } = await shouldRouteToMedicineSearch(input);
+      
+      if (output?.shouldRoute && output.medicineName) {
+          const medicineResult = await getMedicineInformation({
+              medicineName: output.medicineName,
+              chatHistory: input.chatHistory,
+          });
+          return {
+              ...medicineResult,
+              intent: 'MEDICINE',
+          };
+      }
 
-  return contextAwareChatbotFlow(input);
+      return contextAwareChatbotFlow(input);
+    } catch (error) {
+      console.error('Error in contextAwareChatbot:', error);
+      // Return a fallback response
+      return {
+        response: "I apologize, but I'm having trouble processing your request right now. Please try again in a moment.",
+        intent: 'GENERAL',
+      };
+    }
 }
 
 const prompt = ai.definePrompt({
@@ -84,6 +97,12 @@ You are 'HealthMind,' a caring Indian Health Assistant.
 4. **General Weakness:** Suggest **Khichdi** or **Dalia**.
 
 **CRITICAL**: You **MUST NOT** include any disclaimers like "I am not a medical professional." The user interface already handles this.
+
+**INTENT DETECTION:**
+- Set intent to 'EMERGENCY' if the user mentions: severe pain, difficulty breathing, chest pain, heavy bleeding, loss of consciousness, severe allergic reaction
+- Set intent to 'SYMPTOM' if the user describes health symptoms or asks "what should I do"
+- Set intent to 'MEDICINE' if asking about a specific medicine
+- Set intent to 'GENERAL' for other health-related questions
 
 **STRICT RESPONSE STRUCTURE:**
 
@@ -113,9 +132,9 @@ You are 'HealthMind,' a caring Indian Health Assistant.
 - **FINAL RULE:** Do not leave any section header without its icon.
 
 **YOUR TASK:**
-1.  Analyze the user's message and chat history.
-2.  Determine if the user is describing a SYMPTOM, asking about a MEDICINE, or has a GENERAL query. Set the 'intent' field in your output to 'SYMPTOM', 'MEDICINE', or 'GENERAL'.
-3.  Formulate a response that STRICTLY follows the persona and template above.
+1. Analyze the user's message and chat history.
+2. Determine the intent and set it appropriately.
+3. Formulate a response that STRICTLY follows the persona and template above.
 
 Chat History:
 {{#each chatHistory}}
@@ -126,8 +145,7 @@ User: {{{message}}}
 HealthMind:`,
   
   helpers: {
-    ifEquals: function(arg1, arg2, options) {
-      // @ts-expect-error
+    ifEquals: function(arg1: any, arg2: any, options: any) {
       return (arg1 == arg2) ? options.fn(this) : options.inverse(this);
     }
   },
@@ -143,7 +161,7 @@ const contextAwareChatbotFlow = ai.defineFlow(
     const {output} = await prompt(input);
     return {
       response: output!.response,
-      intent: output!.intent || 'SYMPTOM',
+      intent: output!.intent || 'GENERAL',
     };
   }
 );
