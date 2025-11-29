@@ -23,7 +23,7 @@ export default function DiseasesPage() {
         {diseases.map((disease) => (
           <Link href={`/diseases/${disease.slug}`} key={disease.slug} className="block h-full">
             <Card className="h-full flex flex-col group overflow-hidden hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1">
-              {disease.image && (
+              {disease.image?.imageUrl && (
                 <div className="relative h-48 w-full">
                   <Image
                     src={disease.image.imageUrl}
