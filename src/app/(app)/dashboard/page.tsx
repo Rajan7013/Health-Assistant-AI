@@ -10,9 +10,15 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { ArrowRight, Bot, BookHeart, CalendarClock, History, Pill, Stethoscope } from 'lucide-react';
+import { ArrowRight, Bot, BookHeart, CalendarClock, History, Pill, Stethoscope, Bell, Clock } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
+import { useUser } from '@/firebase/auth/use-user';
+import { useFirestore } from '@/firebase';
+import { getSchedules, type ScheduleWithId } from '@/firebase/firestore/schedules';
+import { format, isToday, isFuture, parse, differenceInMinutes } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const heroImage = PlaceHolderImages.find(img => img.id === 'hero');
 
@@ -73,11 +79,124 @@ const coreFeatures = [
     },
 ]
 
+const NextReminderCard = ({ schedule, isLoading }: { schedule: ScheduleWithId | null, isLoading: boolean }) => {
+  if (isLoading) {
+    return (
+      <Card className="rounded-2xl shadow-lg">
+        <CardHeader>
+          <Skeleton className="h-6 w-1/2" />
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-12 w-12 rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (!schedule) {
+    return (
+      <Card className="rounded-2xl shadow-lg">
+        <CardHeader>
+          <CardTitle>No Upcoming Reminders</CardTitle>
+          <CardDescription>Your schedule is clear. Add a new medication reminder to stay on track.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild>
+            <Link href="/schedule">
+              <CalendarClock className="mr-2 h-4 w-4" />
+              Go to Schedule
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const now = new Date();
+  const reminderDateTime = parse(schedule.time, 'HH:mm', new Date());
+
+  let timeText = `Today at ${format(reminderDateTime, 'h:mm a')}`;
+
+  const diffMins = differenceInMinutes(reminderDateTime, now);
+
+  if(diffMins > 0 && diffMins <= 60) {
+    timeText = `In ${diffMins} minutes`;
+  }
+
+  return (
+    <Card className="rounded-2xl shadow-lg border-2 border-primary/30 bg-gradient-to-br from-primary/10 to-background">
+      <CardHeader>
+        <CardTitle className="gradient-text from-primary to-blue-500">
+          Your Next Reminder
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center gap-4">
+          <div className="p-4 bg-white dark:bg-secondary rounded-full shadow-md">
+            <Bell className="h-8 w-8 text-primary" />
+          </div>
+          <div>
+            <p className="text-xl font-bold">{schedule.medicineName}</p>
+            <div className="flex items-center gap-2 text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                <p className="font-semibold">{timeText}</p>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 export default function DashboardPage() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const [nextSchedule, setNextSchedule] = useState<ScheduleWithId | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user || !firestore) return;
+    
+    setIsLoading(true);
+
+    const unsubscribe = getSchedules(firestore, user.uid, (schedules) => {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      const upcoming = schedules
+        .map(s => {
+          const scheduleTime = parse(s.time, 'HH:mm', today);
+          return { ...s, dateTime: scheduleTime };
+        })
+        .filter(s => {
+          if(s.frequency === 'daily') {
+            return s.dateTime > now && s.startDate <= now;
+          }
+          if(s.frequency === 'weekly') {
+            return s.dateTime > now && s.startDate <= now && s.startDate.getDay() === now.getDay();
+          }
+          return false;
+        })
+        .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
+
+      setNextSchedule(upcoming.length > 0 ? upcoming[0] : null);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user, firestore]);
+
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
+            <NextReminderCard schedule={nextSchedule} isLoading={isLoading} />
             <Card className="overflow-hidden relative rounded-2xl shadow-lg h-80 lg:h-auto">
                 <div className="h-full w-full">
                     {heroImage && (
@@ -158,3 +277,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
