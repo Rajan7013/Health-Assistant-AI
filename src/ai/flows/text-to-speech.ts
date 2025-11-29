@@ -52,8 +52,10 @@ async function toWav(
 const textToSpeechFlow = ai.defineFlow(
   {
     name: 'textToSpeechFlow',
-    inputSchema: TextToSpeechInputSchema,
-    outputSchema: TextToSpeechOutputSchema,
+    inputSchema: z.string(),
+    outputSchema: z.object({
+      audioDataUri: z.string(),
+    }),
   },
   async (text) => {
     const { media } = await ai.generate({
@@ -62,7 +64,7 @@ const textToSpeechFlow = ai.defineFlow(
         responseModalities: ['AUDIO'],
         speechConfig: {
           voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Alloy' },
+            prebuiltVoiceConfig: { voiceName: 'zephyr' },
           },
         },
       },
