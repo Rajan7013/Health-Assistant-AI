@@ -1,3 +1,4 @@
+
 import { diseases, type Disease } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import {

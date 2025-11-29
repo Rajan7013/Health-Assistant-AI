@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -25,6 +26,8 @@ import {
   Menu,
   LogOut,
   User,
+  BookHeart,
+  Stethoscope,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/icons';
@@ -49,9 +52,19 @@ const navItems = [
     label: 'AI Chat',
   },
   {
+    href: '/symptom-checker',
+    icon: Stethoscope,
+    label: 'Symptom Analyzer',
+  },
+  {
     href: '/schedule',
     icon: CalendarClock,
     label: 'Schedule',
+  },
+  {
+    href: '/diseases',
+    icon: BookHeart,
+    label: 'Disease Library',
   },
 ];
 
@@ -190,8 +203,7 @@ export default function AppLayout({
                         <Link href="/" className="flex items-center gap-3 font-semibold text-lg">
                             <Logo className="h-8 w-8 text-primary" />
                             <span className="font-bold">HealthMind AI</span>
-                        </Link>
-                        <SheetTitle className="sr-only">Menu</SheetTitle>
+                        </Link>                        <SheetTitle className="sr-only">Menu</SheetTitle>
                         <SheetDescription className="sr-only">App navigation</SheetDescription>
                     </SheetHeader>
                     <div className="flex-1 overflow-auto py-2">
