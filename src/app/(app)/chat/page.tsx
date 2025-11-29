@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { contextAwareChatbot, type ContextAwareChatbotInput } from '@/ai/flows/context-aware-chatbot';
-import { textToSpeechStream } from '@/ai/flows/text-to-speech-stream';
+import { textToSpeech } from '@/ai/flows/text-to-speech';
 import { Bot, Send, User, Loader2, Sparkles, Volume2, Pause } from 'lucide-react';
 
 type MessageIntent = 'MEDICINE' | 'SYMPTOM' | 'GENERAL' | 'EMERGENCY';
@@ -68,12 +68,10 @@ export default function ChatPage() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
-  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const mediaSourceRef = useRef<MediaSource | null>(null);
-  const sourceBufferRef = useRef<SourceBuffer | null>(null);
-  const audioStreamQueue = useRef<ArrayBuffer[]>([]);
-  const isAppending = useRef(false);
+
+  // Client-side cache for audio data
+  const audioCache = useRef(new Map<string, string>());
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -83,117 +81,79 @@ export default function ChatPage() {
       });
     }
   }, [messages]);
-  
+
   const handleAudioEnded = useCallback(() => {
     setPlayingMessageId(null);
-    setIsAudioPlaying(false);
   }, []);
-  
+
   useEffect(() => {
     const audioElement = audioRef.current;
     if (audioElement) {
-      audioElement.addEventListener('ended', handleAudioEnded);
-      audioElement.addEventListener('pause', handleAudioEnded);
-      return () => {
-        audioElement.removeEventListener('ended', handleAudioEnded);
-        audioElement.removeEventListener('pause', handleAudioEnded);
-      };
+        audioElement.addEventListener('ended', handleAudioEnded);
+        return () => {
+            audioElement.removeEventListener('ended', handleAudioEnded);
+        };
     }
-  }, [audioRef, handleAudioEnded]);
-
-  const appendNextChunk = useCallback(() => {
-    if (isAppending.current || audioStreamQueue.current.length === 0 || !sourceBufferRef.current || sourceBufferRef.current.updating) {
+  }, [handleAudioEnded]);
+  
+  const generateAndCacheAudio = useCallback(async (messageId: string, content: string) => {
+    if (!content.trim() || audioCache.current.has(content)) {
       return;
     }
-    isAppending.current = true;
-    const chunk = audioStreamQueue.current.shift();
-    if (chunk) {
-      try {
-        sourceBufferRef.current.appendBuffer(chunk);
-      } catch (e) {
-        console.error("Error appending buffer:", e);
-        isAppending.current = false;
+
+    setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, isAudioLoading: true } : msg));
+    try {
+      const { audioDataUri } = await textToSpeech(content);
+      if (audioDataUri) {
+        audioCache.current.set(content, audioDataUri);
       }
+    } catch (error) {
+      console.error('Error pre-fetching audio:', error);
+    } finally {
+      setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, isAudioLoading: false } : msg));
     }
   }, []);
 
-  useEffect(() => {
-    if (sourceBufferRef.current) {
-      sourceBufferRef.current.onupdateend = () => {
-        isAppending.current = false;
-        appendNextChunk();
-      };
-    }
-  }, [appendNextChunk]);
-
-
-  const handlePlayAudio = async (message: Message) => {
+  const handlePlayAudio = useCallback(async (message: Message) => {
     const { id, content } = message;
 
-    if (isAudioPlaying && playingMessageId === id && audioRef.current) {
-        audioRef.current.pause();
-        return;
+    if (playingMessageId === id && audioRef.current) {
+      audioRef.current.pause();
+      handleAudioEnded(); // Manually trigger end state
+      return;
     }
-    
-    if (!content.trim()) return;
 
-    setMessages(prev => prev.map(msg => msg.id === id ? { ...msg, isAudioLoading: true } : msg));
     setPlayingMessageId(id);
 
-    try {
-      const mediaSource = new MediaSource();
-      mediaSourceRef.current = mediaSource;
-      
-      const audioUrl = URL.createObjectURL(mediaSource);
-
-      if (audioRef.current) {
-        audioRef.current.src = audioUrl;
-        audioRef.current.play().then(() => setIsAudioPlaying(true)).catch(e => {
-            console.error("Audio playback failed", e);
-            setIsAudioPlaying(false);
-            setPlayingMessageId(null);
-        });
+    if (audioCache.current.has(content)) {
+      const audioDataUri = audioCache.current.get(content);
+      if (audioRef.current && audioDataUri) {
+        audioRef.current.src = audioDataUri;
+        audioRef.current.play().catch(console.error);
       }
-
-      mediaSource.addEventListener('sourceopen', async () => {
-        URL.revokeObjectURL(audioUrl); 
-        const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
-        sourceBufferRef.current = sourceBuffer;
-        
-        sourceBuffer.addEventListener('updateend', () => {
-            isAppending.current = false;
-            appendNextChunk();
-        });
-
-        const stream = await textToSpeechStream(content);
-        for await (const chunk of stream) {
-            audioStreamQueue.current.push(chunk.buffer);
-            if (!isAppending.current && !sourceBuffer.updating) {
-                appendNextChunk();
-            }
+    } else {
+      // If not in cache, generate it on-demand
+      setMessages(prev => prev.map(msg => msg.id === id ? { ...msg, isAudioLoading: true } : msg));
+      try {
+        const { audioDataUri } = await textToSpeech(content);
+        if (audioDataUri) {
+          audioCache.current.set(content, audioDataUri);
+          if (audioRef.current) {
+            audioRef.current.src = audioDataUri;
+            audioRef.current.play().catch(console.error);
+          }
+        } else {
+            setPlayingMessageId(null); // Generation failed
         }
-
-        // When stream ends, check if MediaSource is still open and close it
-        const checkStreamEnd = () => {
-            if (!sourceBuffer.updating && audioStreamQueue.current.length === 0 && mediaSource.readyState === 'open') {
-                mediaSource.endOfStream();
-            } else if (mediaSource.readyState === 'open') {
-                setTimeout(checkStreamEnd, 100);
-            }
-        }
-        checkStreamEnd();
-      });
-
-    } catch (error) {
-      console.error("Error generating or streaming speech:", error);
-      setPlayingMessageId(null);
-      setIsAudioPlaying(false);
-    } finally {
-      setMessages(prev => prev.map(msg => msg.id === id ? { ...msg, isAudioLoading: false } : msg));
+      } catch (error) {
+        console.error('Error generating audio on-demand:', error);
+        setPlayingMessageId(null);
+      } finally {
+        setMessages(prev => prev.map(msg => msg.id === id ? { ...msg, isAudioLoading: false } : msg));
+      }
     }
-  };
+  }, [playingMessageId, handleAudioEnded]);
 
-  
   const handleSendMessage = useCallback(async (messageContent: string) => {
     if (!messageContent.trim() || isLoading) return;
   
@@ -224,6 +184,10 @@ export default function ChatPage() {
         isAudioLoading: false,
       };
       setMessages((prev) => [...prev, assistantMessage]);
+      
+      // Proactively generate and cache audio for the new message
+      generateAndCacheAudio(assistantMessage.id, assistantMessage.content);
+
     } catch (error) {
       console.error('Error with chatbot:', error);
       const errorMessage: Message = { id: 'error-' + Date.now(), role: 'assistant', content: "Sorry, I'm having trouble connecting right now. Please try again in a moment." };
@@ -231,7 +195,7 @@ export default function ChatPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, messages]);
+  }, [input, isLoading, messages, generateAndCacheAudio]);
   
 
   const handleSubmit = async (e: FormEvent) => {
@@ -300,7 +264,7 @@ export default function ChatPage() {
                     >
                         {message.isAudioLoading ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (playingMessageId === message.id && isAudioPlaying) ? (
+                        ) : (playingMessageId === message.id) ? (
                             <Pause className="h-4 w-4" />
                         ) : (
                             <Volume2 className="h-4 w-4" />
