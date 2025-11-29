@@ -33,7 +33,7 @@ import { useFirestore } from "@/firebase"
 import { addSchedule, deleteSchedule as deleteScheduleFromDB, getSchedules } from "@/firebase/firestore/schedules"
 
 const MAX_FILE_SIZE = 5000000; // 5MB
-const ACCEPTED_AUDIO_TYPES = ["audio/mpeg", "audio/wav", "audio/ogg"];
+const ACCEPTED_AUDIO_TYPES = ["audio/mpeg", "audio/wav", "audio/ogg", "audio/mp3"];
 
 const formSchema = z.object({
   medicineName: z.string().min(2, {
@@ -97,13 +97,24 @@ export default function SchedulePage() {
     const interval = setInterval(() => {
         const now = new Date();
         const currentTime = format(now, "HH:mm");
-        const currentDay = getDay(now);
+        const currentDayOfWeek = getDay(now); // Sunday is 0, Monday is 1, etc.
 
         schedules.forEach(schedule => {
-            const scheduleDate = new Date(schedule.startDate);
-            if (now >= scheduleDate) {
-                if (schedule.time === currentTime) {
-                    if (schedule.frequency === "daily" || (schedule.frequency === "weekly" && getDay(scheduleDate) === currentDay)) {
+            const scheduleStartDate = new Date(schedule.startDate);
+            
+            // Set time to 00:00:00 to compare dates only
+            scheduleStartDate.setHours(0,0,0,0); 
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            // Check if the current time matches the schedule time
+            // and if today is on or after the start date.
+            if (schedule.time === currentTime && now >= scheduleStartDate) {
+                if (schedule.frequency === "daily") {
+                    triggerAlert(schedule);
+                } else if (schedule.frequency === "weekly") {
+                    const scheduleStartDayOfWeek = getDay(scheduleStartDate);
+                    if (scheduleStartDayOfWeek === currentDayOfWeek) {
                         triggerAlert(schedule);
                     }
                 }
@@ -146,8 +157,11 @@ export default function SchedulePage() {
         return;
     }
     
-    // We don't save the sound file to Firestore, just the metadata.
-    // The soundUrl is temporary and will be stored in local state.
+    let soundUrl = '';
+    if (values.sound && values.sound[0]) {
+        soundUrl = URL.createObjectURL(values.sound[0]);
+    }
+
     const scheduleDataForDb = {
         medicineName: values.medicineName,
         startDate: values.startDate,
@@ -174,7 +188,6 @@ export default function SchedulePage() {
         return;
     }
     await deleteScheduleFromDB(firestore, user.uid, id);
-    // The real-time listener will automatically update the state, no need for manual removal.
     toast({
         title: "Schedule Removed",
         variant: "destructive",
