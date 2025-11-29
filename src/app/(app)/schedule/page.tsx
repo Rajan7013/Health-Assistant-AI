@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { format, getDay } from "date-fns"
-import { CalendarIcon, Bell, Pill, PlusCircle, Trash2, CalendarClock } from "lucide-react"
+import { CalendarIcon, Bell, Pill, PlusCircle, Trash2, CalendarClock, PlayCircle } from "lucide-react"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useState, useEffect, useRef } from "react"
@@ -48,11 +48,6 @@ const formSchema = z.object({
   }),
   sound: z
     .any()
-    .refine((files) => files?.length == 1 ? files?.[0]?.size <= MAX_FILE_SIZE : true, `Max file size is 5MB.`)
-    .refine(
-      (files) => files?.length == 1 ? ACCEPTED_AUDIO_TYPES.includes(files?.[0]?.type) : true,
-      ".mp3, .wav and .ogg files are accepted."
-    )
     .optional(),
 })
 
@@ -75,6 +70,7 @@ const iconColors = [
 export default function SchedulePage() {
   const [schedules, setSchedules] = useState<ScheduleWithId[]>([]);
   const [soundUrls, setSoundUrls] = useState<Record<string, string>>({});
+  const [selectedSoundUrl, setSelectedSoundUrl] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
@@ -99,10 +95,10 @@ export default function SchedulePage() {
         schedules.forEach(schedule => {
             const scheduleStartDate = new Date(schedule.startDate);
             const today = new Date();
-            today.setHours(0,0,0,0);
+            today.setHours(0, 0, 0, 0);
             
-            const scheduleDateOnly = new Date(scheduleStartDate);
-            scheduleDateOnly.setHours(0,0,0,0);
+            const scheduleDateOnly = new Date(schedule.startDate);
+            scheduleDateOnly.setHours(0, 0, 0, 0);
 
 
             if (schedule.time === currentTime && today >= scheduleDateOnly) {
@@ -119,7 +115,7 @@ export default function SchedulePage() {
     }, 60000); // Check every minute
 
     return () => clearInterval(interval);
-  }, [schedules]);
+  }, [schedules, soundUrls]);
 
   const triggerAlert = (schedule: ScheduleWithId) => {
     toast({
@@ -128,11 +124,9 @@ export default function SchedulePage() {
     });
     
     const soundUrl = soundUrls[schedule.id];
-    if (soundUrl) {
-      if (audioRef.current) {
+    if (soundUrl && audioRef.current) {
         audioRef.current.src = soundUrl;
         audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
-      }
     }
   };
 
@@ -147,6 +141,34 @@ export default function SchedulePage() {
   })
 
   const soundRef = form.register("sound");
+
+  const handleSoundSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > MAX_FILE_SIZE) {
+        form.setError("sound", { type: "manual", message: `Max file size is 5MB.` });
+        setSelectedSoundUrl(null);
+        return;
+      }
+      if (!ACCEPTED_AUDIO_TYPES.includes(file.type)) {
+        form.setError("sound", { type: "manual", message: ".mp3, .wav and .ogg files are accepted." });
+        setSelectedSoundUrl(null);
+        return;
+      }
+      form.clearErrors("sound");
+      setSelectedSoundUrl(URL.createObjectURL(file));
+    } else {
+      setSelectedSoundUrl(null);
+    }
+  }
+  
+  const handlePreviewSound = () => {
+    if(selectedSoundUrl && audioRef.current) {
+        audioRef.current.src = selectedSoundUrl;
+        audioRef.current.play();
+    }
+  }
+
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user || !firestore) {
@@ -164,9 +186,8 @@ export default function SchedulePage() {
     const newDocId = await addSchedule(firestore, user.uid, scheduleDataForDb);
     
     if (newDocId) {
-        if (values.sound && values.sound[0]) {
-            const soundUrl = URL.createObjectURL(values.sound[0]);
-            setSoundUrls(prev => ({...prev, [newDocId]: soundUrl}));
+        if (selectedSoundUrl) {
+            setSoundUrls(prev => ({...prev, [newDocId]: selectedSoundUrl}));
         }
     
         toast({
@@ -179,6 +200,9 @@ export default function SchedulePage() {
         form.setValue("frequency", "daily");
         form.setValue("startDate", undefined);
         form.setValue("sound", null);
+        setSelectedSoundUrl(null);
+        const soundInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+        if(soundInput) soundInput.value = "";
     }
   }
 
@@ -322,9 +346,16 @@ export default function SchedulePage() {
                                 render={({ field }) => (
                                    <FormItem>
                                       <FormLabel className="font-semibold">Reminder Sound (Optional)</FormLabel>
-                                      <FormControl>
-                                         <Input type="file" accept="audio/*" {...soundRef} />
-                                      </FormControl>
+                                       <div className="flex items-center gap-2">
+                                          <FormControl>
+                                             <Input type="file" accept="audio/*" {...soundRef} onChange={handleSoundSelect} />
+                                          </FormControl>
+                                           {selectedSoundUrl && (
+                                              <Button type="button" size="icon" variant="ghost" onClick={handlePreviewSound}>
+                                                  <PlayCircle className="h-5 w-5 text-primary" />
+                                              </Button>
+                                           )}
+                                      </div>
                                       <FormMessage />
                                     </FormItem>
                                 )}
@@ -371,5 +402,3 @@ export default function SchedulePage() {
     </div>
   );
 }
-
-    
