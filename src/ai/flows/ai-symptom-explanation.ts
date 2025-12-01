@@ -7,8 +7,8 @@
  * - SymptomExplanationOutput - The return type for the explainSymptoms function (JSON report).
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const SymptomExplanationInputSchema = z.object({
   symptoms: z
@@ -37,8 +37,8 @@ export async function explainSymptoms(input: SymptomExplanationInput): Promise<S
 
 const prompt = ai.definePrompt({
   name: 'symptomExplanationAsApiPrompt',
-  input: {schema: SymptomExplanationInputSchema},
-  output: {schema: SymptomExplanationOutputSchema},
+  input: { schema: SymptomExplanationInputSchema },
+  output: { schema: SymptomExplanationOutputSchema },
   prompt: `**ROLE:** You are a Medical Diagnostic API.
 **GOAL:** Analyze symptoms and return raw JSON data only. DO NOT speak to the user.
 
@@ -67,7 +67,18 @@ const explainSymptomsFlow = ai.defineFlow(
     outputSchema: SymptomExplanationOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    let lastError;
+    for (let i = 0; i < 3; i++) {
+      try {
+        const { output } = await prompt(input);
+        return output!;
+      } catch (error: any) {
+        console.warn(`Attempt ${i + 1} failed:`, error.message);
+        lastError = error;
+        // Wait 1 second before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    throw lastError;
   }
 );

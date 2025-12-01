@@ -4,12 +4,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, getAdditionalUserInfo, User } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-
+import { signInWithPopup, GoogleAuthProvider, getAdditionalUserInfo } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -18,26 +14,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/icons';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useAuth, useFirestore } from '@/firebase';
 import { Loader2 } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
-
-const formSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email.' }),
-  password: z.string().min(1, { message: 'Password is required.' }),
-});
 
 export default function LoginPage() {
   const loginImage = PlaceHolderImages.find((img) => img.id === 'login-visual');
@@ -46,35 +27,6 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
-  });
-
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
-      toast({
-        title: 'Login Successful',
-        description: "You're now logged in.",
-      });
-      router.push('/dashboard');
-    } catch (error: any) {
-      console.error('Login error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Login Failed',
-        description:
-          error.code === 'auth/invalid-credential'
-            ? 'Invalid email or password. Please try again.'
-            : 'An unexpected error occurred. Please try again.',
-      });
-    }
-  };
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
@@ -93,7 +45,7 @@ export default function LoginPage() {
           createdAt: serverTimestamp(),
         });
       }
-      
+
       toast({
         title: 'Login Successful',
         description: `Welcome back, ${user.displayName}!`,
@@ -107,105 +59,44 @@ export default function LoginPage() {
         description: 'Could not sign you in with Google. Please try again.',
       });
     } finally {
-        setIsGoogleLoading(false);
+      setIsGoogleLoading(false);
     }
   };
 
-  const isSubmitting = form.formState.isSubmitting || isGoogleLoading;
-
   return (
-    <div className="w-full lg:grid lg:min-h-[600px] lg:grid-cols-2 xl:min-h-[800px]">
-      <div className="flex items-center justify-center py-12">
-        <Card className="mx-auto max-w-sm">
-          <CardHeader className="text-center">
-            <Logo className="mx-auto h-12 w-12 text-primary mb-2" />
-            <CardTitle className="text-2xl font-headline">
+    <div className="w-full lg:grid lg:min-h-[600px] lg:grid-cols-2 xl:min-h-[800px] bg-white">
+      <div className="flex items-center justify-center py-12 px-4 relative overflow-hidden">
+        {/* Background Gradients */}
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-purple-100/40 via-transparent to-transparent pointer-events-none" />
+
+        <Card className="mx-auto max-w-sm w-full border-0 shadow-2xl rounded-3xl overflow-hidden relative z-10 bg-white/80 backdrop-blur-xl">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500" />
+
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto h-12 w-12 bg-gradient-to-br from-purple-600 to-blue-500 rounded-xl flex items-center justify-center mb-4 shadow-lg">
+              <Logo className="h-6 w-6 text-white" />
+            </div>
+            <CardTitle className="text-2xl font-black text-black" style={{ color: '#000000' }}>
               Welcome Back
             </CardTitle>
-            <CardDescription>
-              Enter your email below to login to your account
+            <CardDescription className="text-black font-medium" style={{ color: '#000000' }}>
+              Sign in securely with your Google account
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="grid gap-4"
-              >
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="m@example.com"
-                          {...field}
-                          disabled={isSubmitting}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center">
-                        <FormLabel>Password</FormLabel>
-                        <Link
-                          href="/forgot-password"
-                          className="ml-auto inline-block text-sm underline"
-                        >
-                          Forgot your password?
-                        </Link>
-                      </div>
-                      <FormControl>
-                        <Input type="password" {...field} disabled={isSubmitting} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isSubmitting}
-                >
-                  {form.formState.isSubmitting && !isGoogleLoading && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Login
-                </Button>
-              </form>
-            </Form>
-
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or continue with
-                </span>
-              </div>
-            </div>
+          <CardContent className="pt-6">
 
             <Button
               variant="outline"
-              className="w-full"
+              className="w-full rounded-xl border-gray-200 hover:bg-gray-50 text-black font-bold h-12 text-base shadow-sm hover:shadow-md transition-all"
               onClick={handleGoogleSignIn}
-              disabled={isSubmitting}
+              disabled={isGoogleLoading}
+              style={{ color: '#000000' }}
             >
               {isGoogleLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               ) : (
                 <svg
-                  className="mr-2 h-4 w-4"
+                  className="mr-3 h-5 w-5"
                   viewBox="0 0 48 48"
                   xmlns="http://www.w3.org/2000/svg"
                 >
@@ -227,18 +118,24 @@ export default function LoginPage() {
                   />
                 </svg>
               )}
-              Google
+              Continue with Google
             </Button>
-            <div className="mt-4 text-center text-sm">
-              Don&apos;t have an account?{' '}
-              <Link href="/signup" className="underline">
-                Sign up
-              </Link>
+
+            <div className="mt-8 text-center text-sm font-medium text-gray-500">
+              By continuing, you agree to our{' '}
+              <Link href="/terms" className="underline hover:text-purple-600">
+                Terms of Service
+              </Link>{' '}
+              and{' '}
+              <Link href="/privacy" className="underline hover:text-purple-600">
+                Privacy Policy
+              </Link>.
             </div>
           </CardContent>
         </Card>
       </div>
-      <div className="hidden bg-muted lg:block">
+      <div className="hidden bg-gray-50 lg:block relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-blue-500/20 z-10" />
         {loginImage && (
           <Image
             src={loginImage.imageUrl}
@@ -246,7 +143,7 @@ export default function LoginPage() {
             data-ai-hint={loginImage.imageHint}
             width="1920"
             height="1080"
-            className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+            className="h-full w-full object-cover"
           />
         )}
       </div>

@@ -3,12 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import {
-  createUserWithEmailAndPassword,
-  updateProfile,
   signInWithPopup,
   GoogleAuthProvider,
   getAdditionalUserInfo
@@ -24,29 +19,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/icons';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
-
-const formSchema = z.object({
-  firstName: z.string().min(1, { message: 'First name is required.' }),
-  lastName: z.string().min(1, { message: 'Last name is required.' }),
-  email: z.string().email({ message: 'Please enter a valid email.' }),
-  password: z
-    .string()
-    .min(6, { message: 'Password must be at least 6 characters.' }),
-});
 
 export default function SignupPage() {
   const loginImage = PlaceHolderImages.find((img) => img.id === 'login-visual');
@@ -55,58 +32,6 @@ export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      firstName: '',
-      lastName: '',
-      email: '',
-      password: '',
-    },
-  });
-
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        values.email,
-        values.password
-      );
-      const user = userCredential.user;
-
-      const displayName = `${values.firstName} ${values.lastName}`.trim();
-      await updateProfile(user, { displayName });
-
-      const userProfile = {
-        uid: user.uid,
-        email: user.email,
-        displayName: displayName,
-        photoURL: user.photoURL,
-        createdAt: serverTimestamp(),
-      };
-      
-      await setDoc(doc(firestore, 'users', user.uid), userProfile);
-
-      toast({
-        title: 'Account Created!',
-        description: "You've been successfully signed up.",
-      });
-
-      router.push('/dashboard');
-    } catch (error: any) {
-      console.error('Signup error:', error);
-      let description = 'An unexpected error occurred. Please try again.';
-      if (error.code === 'auth/email-already-in-use') {
-        description = 'This email is already in use. Please try another one or log in.';
-      }
-      toast({
-        variant: 'destructive',
-        title: 'Signup Failed',
-        description,
-      });
-    }
-  };
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
@@ -125,7 +50,7 @@ export default function SignupPage() {
           createdAt: serverTimestamp(),
         });
       }
-      
+
       toast({
         title: 'Sign-In Successful!',
         description: `Welcome, ${user.displayName}!`,
@@ -139,15 +64,14 @@ export default function SignupPage() {
         description: 'Could not sign you in with Google. Please try again.',
       });
     } finally {
-        setIsGoogleLoading(false);
+      setIsGoogleLoading(false);
     }
   };
 
-  const isSubmitting = form.formState.isSubmitting || isGoogleLoading;
-
   return (
-    <div className="w-full lg:grid lg:min-h-[600px] lg:grid-cols-2 xl:min-h-[800px]">
-      <div className="hidden bg-muted lg:block">
+    <div className="w-full lg:grid lg:min-h-[600px] lg:grid-cols-2 xl:min-h-[800px] bg-white">
+      <div className="hidden bg-gray-50 lg:block relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-blue-500/20 z-10" />
         {loginImage && (
           <Image
             src={loginImage.imageUrl}
@@ -155,33 +79,41 @@ export default function SignupPage() {
             data-ai-hint={loginImage.imageHint}
             width="1920"
             height="1080"
-            className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+            className="h-full w-full object-cover"
           />
         )}
       </div>
-      <div className="flex items-center justify-center py-12">
-        <Card className="mx-auto max-w-sm">
-          <CardHeader className="text-center">
-            <Logo className="mx-auto h-12 w-12 text-primary mb-2" />
-            <CardTitle className="text-2xl font-headline">
+      <div className="flex items-center justify-center py-12 px-4 relative overflow-hidden">
+        {/* Background Gradients */}
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-100/40 via-transparent to-transparent pointer-events-none" />
+
+        <Card className="mx-auto max-w-sm w-full border-0 shadow-2xl rounded-3xl overflow-hidden relative z-10 bg-white/80 backdrop-blur-xl">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
+
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto h-12 w-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mb-4 shadow-lg">
+              <Logo className="h-6 w-6 text-white" />
+            </div>
+            <CardTitle className="text-2xl font-black text-black" style={{ color: '#000000' }}>
               Create an Account
             </CardTitle>
-            <CardDescription>
-              Enter your information to create an account
+            <CardDescription className="text-black font-medium" style={{ color: '#000000' }}>
+              Join securely with your Google account
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <Button
               variant="outline"
-              className="w-full"
+              className="w-full rounded-xl border-gray-200 hover:bg-gray-50 text-black font-bold h-12 text-base shadow-sm hover:shadow-md transition-all mb-6"
               onClick={handleGoogleSignIn}
-              disabled={isSubmitting}
+              disabled={isGoogleLoading}
+              style={{ color: '#000000' }}
             >
               {isGoogleLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               ) : (
                 <svg
-                  className="mr-2 h-4 w-4"
+                  className="mr-3 h-5 w-5"
                   viewBox="0 0 48 48"
                   xmlns="http://www.w3.org/2000/svg"
                 >
@@ -205,93 +137,10 @@ export default function SignupPage() {
               )}
               Sign up with Google
             </Button>
-            
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or continue with email
-                </span>
-              </div>
-            </div>
 
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="grid gap-4"
-              >
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="firstName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>First name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Max" {...field} disabled={isSubmitting} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="lastName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Last name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Robinson" {...field} disabled={isSubmitting} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="m@example.com"
-                          {...field}
-                          disabled={isSubmitting}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input type="password" {...field} disabled={isSubmitting} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                   {form.formState.isSubmitting && !isGoogleLoading && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Create an account
-                </Button>
-              </form>
-            </Form>
-            <div className="mt-4 text-center text-sm">
+            <div className="text-center text-sm font-medium text-black" style={{ color: '#000000' }}>
               Already have an account?{' '}
-              <Link href="/login" className="underline">
+              <Link href="/login" className="underline text-blue-600 hover:text-blue-700 font-bold">
                 Sign in
               </Link>
             </div>

@@ -23,7 +23,9 @@ export type MedicineInformationInput = z.infer<typeof MedicineInformationInputSc
 
 const MedicineInformationOutputSchema = z.object({
   response: z.string().describe('A conversational response with information about the medicine and source links.'),
-  intent: z.enum(['MEDICINE', 'SYMPTOM', 'GENERAL']).describe('The primary intent of the user\'s query.'),
+  intent: z.enum(['MEDICINE', 'SYMPTOM', 'GENERAL', 'EMERGENCY']).describe('The primary intent of the user\'s query.'),
+  urgencyLevel: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional().describe('The urgency level of the situation.'),
+  requiresDoctorVisit: z.boolean().optional().describe('Whether the user should see a doctor.'),
 });
 export type MedicineInformationOutput = z.infer<typeof MedicineInformationOutputSchema>;
 
@@ -91,8 +93,7 @@ User query: {{{medicineName}}}
 `,
    tools: [googleAI.googleSearch],
    helpers: {
-    ifEquals: function(arg1, arg2, options) {
-      // @ts-expect-error
+    ifEquals: function(arg1: string, arg2: string, options: any) {
       return (arg1 == arg2) ? options.fn(this) : options.inverse(this);
     }
   },
@@ -105,10 +106,22 @@ const medicineInformationRetrievalFlow = ai.defineFlow(
     outputSchema: MedicineInformationOutputSchema,
   },
   async input => {
-    const {output} = await medicineInformationRetrievalPrompt(input);
-    return {
-        response: output!.response,
-        intent: 'MEDICINE',
-    };
+    try {
+      const {output} = await medicineInformationRetrievalPrompt(input);
+      return {
+          response: output!.response,
+          intent: 'MEDICINE',
+          urgencyLevel: 'LOW',
+          requiresDoctorVisit: false,
+      };
+    } catch (error) {
+      console.error('Error in medicineInformationRetrievalFlow:', error);
+      return {
+        response: "I apologize, but I'm having trouble finding information about this medicine. Please try again in a moment.",
+        intent: 'GENERAL',
+        urgencyLevel: 'LOW',
+        requiresDoctorVisit: false,
+      };
+    }
   }
 );

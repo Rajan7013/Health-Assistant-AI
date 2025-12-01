@@ -7,6 +7,7 @@ import {
   deleteDoc,
   doc,
   onSnapshot,
+  getDocs,
   Timestamp,
   type Firestore,
 } from 'firebase/firestore';
@@ -15,10 +16,10 @@ import { FirestorePermissionError } from '../errors';
 
 // This type is a subset of the main Schedule type in the page, but without UI-specific fields.
 export type ScheduleDocumentData = {
-    medicineName: string;
-    startDate: Date;
-    time: string;
-    frequency: 'daily' | 'weekly';
+  medicineName: string;
+  startDate: Date;
+  time: string;
+  frequency: 'daily' | 'weekly';
 };
 
 // The data structure stored in Firestore, with a server timestamp.
@@ -74,6 +75,19 @@ export function getSchedules(
   return unsubscribe;
 }
 
+export async function getAllSchedules(firestore: Firestore, userId: string): Promise<ScheduleWithId[]> {
+  const colRef = getSchedulesColRef(firestore, userId);
+  const snapshot = await getDocs(colRef);
+  return snapshot.docs.map((doc) => {
+    const data = doc.data() as ScheduleDocument;
+    return {
+      ...data,
+      id: doc.id,
+      startDate: data.startDate.toDate(),
+    };
+  });
+}
+
 /**
  * Adds a new schedule for a user.
  * @param firestore - The Firestore instance.
@@ -95,7 +109,7 @@ export async function addSchedule(
   try {
     const docRef = await addDoc(colRef, data);
     return docRef.id;
-  } catch(serverError) {
+  } catch (serverError) {
     const permissionError = new FirestorePermissionError({
       path: colRef.path,
       operation: 'create',

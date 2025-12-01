@@ -4,31 +4,54 @@ service cloud.firestore {
   match /databases/{database}/documents {
   
     // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
     function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
+      return isAuthenticated() && request.auth.uid == userId;
     }
     
     // Check that protected fields are not changed if they exist in the request
     function protectedFieldsUnchanged() {
-      // This logic is key: if the field is not in the request, the check passes.
-      // If it IS in the request, it MUST match the existing value.
       return (!('uid' in request.resource.data) || request.resource.data.uid == resource.data.uid)
           && (!('email' in request.resource.data) || request.resource.data.email == resource.data.email)
           && (!('createdAt' in request.resource.data) || request.resource.data.createdAt == resource.data.createdAt);
     }
 
+    // Deny access by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
     match /users/{userId} {
-      allow read;
+      // Only the owner can read their own profile
+      allow read: if isOwner(userId);
       
       // A user can create their own profile document.
-      // The document uid must match the authenticated user's uid.
       allow create: if isOwner(userId) && request.resource.data.uid == userId;
       
       // A user can update their own profile.
-      // They can change mutable fields and cannot change immutable ones.
       allow update: if isOwner(userId) && protectedFieldsUnchanged();
 
+      // Subcollections inherit strict ownership
       match /schedules/{scheduleId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /chats/{chatId} {
+        allow read, write: if isOwner(userId);
+        
+        match /messages/{messageId} {
+          allow read, write: if isOwner(userId);
+        }
+      }
+
+      match /reports/{reportId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /notes/{noteId} {
         allow read, write: if isOwner(userId);
       }
     }
