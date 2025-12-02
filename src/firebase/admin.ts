@@ -8,7 +8,7 @@ interface FirebaseAdminConfig {
 }
 
 function formatPrivateKey(key: string) {
-    return key.replace(/\\n/g, "\n");
+    return key.replace(/\\n/g, "\n").replace(/^"|"$/g, "");
 }
 
 export function createFirebaseAdminApp(config: FirebaseAdminConfig) {
@@ -54,4 +54,17 @@ export function getAdminMessaging() {
     // If still not initialized, this will throw or return undefined depending on SDK version
     // We'll wrap usage in try-catch in the route.
     return admin.messaging();
+}
+
+export function getAdminFirestore() {
+    if (admin.apps.length === 0) {
+        const projectId = process.env.FIREBASE_PROJECT_ID;
+        const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+        const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+        if (projectId && clientEmail && privateKey) {
+            createFirebaseAdminApp({ projectId, clientEmail, privateKey });
+        }
+    }
+    return admin.firestore();
 }

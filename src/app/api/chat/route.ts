@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { contextAwareChatbot, type ContextAwareChatbotInput } from '@/ai/flows/context-aware-chatbot';
 import { checkRateLimit } from '@/lib/rate-limiter';
-import { getAuth } from 'firebase-admin/auth';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminAuth, getAdminFirestore } from '@/firebase/admin';
 
-// Initialize Firebase Admin (server-side only)
-if (!getApps().length) {
-    initializeApp({
-        credential: cert({
-            projectId: process.env.FIREBASE_PROJECT_ID,
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-        }),
-    });
+// Initialize Firebase Admin (server-side only) via helper
+try {
+    getAdminAuth();
+} catch (error) {
+    console.error('Failed to initialize Firebase Admin:', error);
 }
 
 export async function POST(request: NextRequest) {
@@ -32,7 +26,7 @@ export async function POST(request: NextRequest) {
         // Verify Firebase token
         let decodedToken;
         try {
-            decodedToken = await getAuth().verifyIdToken(token);
+            decodedToken = await getAdminAuth().verifyIdToken(token);
         } catch (error) {
             return NextResponse.json(
                 { error: 'Invalid token' },
@@ -55,7 +49,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Fetch User Profile from Firestore (Admin SDK)
-        const db = getFirestore();
+        const db = getAdminFirestore();
         const userDoc = await db.collection('users').doc(userId).get();
         const userProfile = userDoc.exists ? userDoc.data() : undefined;
 
