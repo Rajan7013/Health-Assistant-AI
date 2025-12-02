@@ -152,7 +152,11 @@ export default function SchedulePage() {
         };
 
         try {
-            await addSchedule(firestore, user.uid, scheduleDataForDb);
+            const result = await addSchedule(firestore, user.uid, scheduleDataForDb);
+
+            if (!result) {
+                throw new Error("Failed to save schedule");
+            }
 
             toast({
                 title: "Schedule Set!",
