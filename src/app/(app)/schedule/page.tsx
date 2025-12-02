@@ -30,7 +30,7 @@ import { useUser } from "@/firebase/auth/use-user"
 import { useFirestore } from "@/firebase"
 import { addSchedule, deleteSchedule as deleteScheduleFromDB, getSchedules, type ScheduleWithId } from "@/firebase/firestore/schedules"
 
-const MAX_FILE_SIZE = 5000000; // 5MB
+const MAX_FILE_SIZE = 800000; // 800KB (Firestore Limit is 1MB)
 const ACCEPTED_AUDIO_TYPES = ["audio/mpeg", "audio/wav", "audio/ogg", "audio/mp3"];
 
 const formSchema = z.object({
@@ -104,7 +104,7 @@ export default function SchedulePage() {
         const file = event.target.files?.[0];
         if (file) {
             if (file.size > MAX_FILE_SIZE) {
-                form.setError("sound", { type: "manual", message: `Max file size is 5MB.` });
+                form.setError("sound", { type: "manual", message: `Max file size is 800KB for database storage.` });
                 setSelectedSoundUrl(null);
                 return;
             }
@@ -128,9 +128,10 @@ export default function SchedulePage() {
         }
     }
 
-    const handlePreviewSound = () => {
-        if (selectedSoundUrl && audioRef.current) {
-            audioRef.current.src = selectedSoundUrl;
+    const handlePreviewSound = (soundUrl?: string) => {
+        const urlToPlay = soundUrl || selectedSoundUrl;
+        if (urlToPlay && audioRef.current) {
+            audioRef.current.src = urlToPlay;
             audioRef.current.play();
         }
     }
@@ -147,23 +148,11 @@ export default function SchedulePage() {
             startDate: values.startDate,
             time: values.time,
             frequency: values.frequency,
+            soundData: selectedSoundUrl || undefined, // Store Base64 directly in Firestore
         };
 
-        const newDocId = await addSchedule(firestore, user.uid, scheduleDataForDb);
-
-        if (newDocId) {
-            if (selectedSoundUrl) {
-                try {
-                    localStorage.setItem(`sound_${newDocId}`, selectedSoundUrl);
-                } catch (e) {
-                    console.error("Could not save sound to localStorage:", e);
-                    toast({
-                        title: "Could not save sound",
-                        description: "The sound file is too large to be saved for global alerts.",
-                        variant: "destructive"
-                    });
-                }
-            }
+        try {
+            await addSchedule(firestore, user.uid, scheduleDataForDb);
 
             toast({
                 title: "Schedule Set!",
@@ -178,6 +167,13 @@ export default function SchedulePage() {
             const soundInput = document.querySelector('input[type="file"]') as HTMLInputElement;
             if (soundInput) soundInput.value = "";
 
+        } catch (error) {
+            console.error("Error adding schedule:", error);
+            toast({
+                title: "Error",
+                description: "Could not save schedule. Sound file might be too large.",
+                variant: "destructive"
+            });
         }
     }
 
@@ -187,7 +183,6 @@ export default function SchedulePage() {
             return;
         }
         deleteScheduleFromDB(firestore, user.uid, id);
-        localStorage.removeItem(`sound_${id}`);
         toast({
             title: "Schedule Removed",
             variant: "destructive",
@@ -372,7 +367,7 @@ export default function SchedulePage() {
                                                         </div>
                                                     </FormControl>
                                                     {selectedSoundUrl && (
-                                                        <Button type="button" size="icon" variant="ghost" onClick={handlePreviewSound} className="h-11 w-11 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 shrink-0">
+                                                        <Button type="button" size="icon" variant="ghost" onClick={() => handlePreviewSound()} className="h-11 w-11 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 shrink-0">
                                                             <PlayCircle className="h-5 w-5" />
                                                         </Button>
                                                     )}
@@ -436,10 +431,15 @@ export default function SchedulePage() {
                                 </div>
 
                                 <div className="flex items-center gap-2 ml-2">
-                                    {typeof window !== 'undefined' && localStorage.getItem(`sound_${schedule.id}`) && (
-                                        <div className="h-9 w-9 rounded-full bg-white/60 dark:bg-black/20 flex items-center justify-center shrink-0">
+                                    {schedule.soundData && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-9 w-9 rounded-full bg-white/60 dark:bg-black/20 flex items-center justify-center shrink-0 hover:bg-blue-100 hover:text-blue-600"
+                                            onClick={() => handlePreviewSound(schedule.soundData)}
+                                        >
                                             <Bell className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                                        </div>
+                                        </Button>
                                     )}
                                     <Button
                                         variant="ghost"

@@ -20,6 +20,7 @@ export type ScheduleDocumentData = {
   startDate: Date;
   time: string;
   frequency: 'daily' | 'weekly';
+  soundData?: string; // Base64 encoded audio (max 800KB)
 };
 
 // The data structure stored in Firestore, with a server timestamp.
