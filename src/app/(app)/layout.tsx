@@ -182,9 +182,8 @@ export default function AppLayout({
       description: `It's time to take your ${schedule.medicineName}.`,
     });
 
-    const customSoundUrl = localStorage.getItem(`sound_${schedule.id}`);
-    if (customSoundUrl && audioRef.current) {
-      audioRef.current.src = customSoundUrl;
+    if (schedule.soundData && audioRef.current) {
+      audioRef.current.src = schedule.soundData;
       audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
     }
   };
