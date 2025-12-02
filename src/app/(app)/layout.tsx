@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ToastAction } from '@/components/ui/toast';
 import {
   Sheet,
   SheetContent,
@@ -139,6 +140,38 @@ export default function AppLayout({
 
   const pathname = usePathname();
 
+  // Unlock audio context on first user interaction
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (audioRef.current) {
+        // Play a silent sound to unlock the audio context
+        audioRef.current.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+        audioRef.current.play().then(() => {
+          // Immediately pause and reset, we just needed the 'play' promise to resolve
+          audioRef.current?.pause();
+          if (audioRef.current) audioRef.current.currentTime = 0;
+        }).catch(e => {
+          // Ignore errors, we'll try again next interaction if needed
+          console.log("Audio unlock attempt:", e);
+        });
+      }
+      // Remove listeners once triggered
+      document.removeEventListener('click', unlockAudio);
+      document.removeEventListener('keydown', unlockAudio);
+      document.removeEventListener('touchstart', unlockAudio);
+    };
+
+    document.addEventListener('click', unlockAudio);
+    document.addEventListener('keydown', unlockAudio);
+    document.addEventListener('touchstart', unlockAudio);
+
+    return () => {
+      document.removeEventListener('click', unlockAudio);
+      document.removeEventListener('keydown', unlockAudio);
+      document.removeEventListener('touchstart', unlockAudio);
+    };
+  }, []);
+
   // Global reminder logic
   useEffect(() => {
     if (!user || !firestore) return;
@@ -177,14 +210,31 @@ export default function AppLayout({
   }, [user, firestore]);
 
   const triggerAlert = (schedule: ScheduleWithId) => {
+    const playSound = () => {
+      if (schedule.soundData && audioRef.current) {
+        audioRef.current.src = schedule.soundData;
+        audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+      }
+    };
+
+    // Always show the visual notification immediately
     toast({
       title: "Medication Reminder! 💊",
       description: `It's time to take your ${schedule.medicineName}.`,
+      action: schedule.soundData ? (
+        <ToastAction altText="Play Alarm" onClick={playSound}>
+          Play Sound 🔊
+        </ToastAction>
+      ) : undefined,
     });
 
+    // Attempt to auto-play the sound
     if (schedule.soundData && audioRef.current) {
       audioRef.current.src = schedule.soundData;
-      audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+      audioRef.current.play().catch((error) => {
+        console.warn("Autoplay blocked (user hasn't interacted yet). Use the toast button.", error);
+        // The toast already has the button, so we're good.
+      });
     }
   };
 
