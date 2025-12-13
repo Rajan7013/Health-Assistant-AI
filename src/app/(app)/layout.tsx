@@ -173,14 +173,23 @@ export default function AppLayout({
   }, []);
 
   // Global reminder logic
+  const lastProcessedMinuteRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!user || !firestore) return;
 
     const unsubscribe = getSchedules(firestore, user.uid, (schedules) => {
       const interval = setInterval(() => {
         const now = new Date();
-        const currentTime = format(now, "HH:mm:ss");
+        const currentMinute = format(now, "HH:mm");
         const currentDayOfWeek = getDay(now);
+
+        // If we already processed this exact minute, skip to avoid duplicate alerts
+        if (lastProcessedMinuteRef.current === currentMinute) {
+          return;
+        }
+
+        let processedAny = false;
 
         schedules.forEach(schedule => {
           const scheduleStartDate = new Date(schedule.startDate);
@@ -190,17 +199,24 @@ export default function AppLayout({
           const scheduleDateOnly = new Date(schedule.startDate);
           scheduleDateOnly.setHours(0, 0, 0, 0);
 
-          if (schedule.time + ":00" === currentTime && today >= scheduleDateOnly) {
+          // Compare generic HH:mm string (e.g., "09:00" === "09:00")
+          if (schedule.time === currentMinute && today >= scheduleDateOnly) {
             if (schedule.frequency === "daily") {
               triggerAlert(schedule);
+              processedAny = true;
             } else if (schedule.frequency === "weekly") {
               const scheduleStartDayOfWeek = getDay(scheduleStartDate);
               if (scheduleStartDayOfWeek === currentDayOfWeek) {
                 triggerAlert(schedule);
+                processedAny = true;
               }
             }
           }
         });
+
+        // Mark this minute as processed so we don't fire again until the minute changes
+        lastProcessedMinuteRef.current = currentMinute;
+
       }, 1000); // Check every second
 
       return () => clearInterval(interval);
