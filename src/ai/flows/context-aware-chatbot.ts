@@ -81,6 +81,9 @@ export async function contextAwareChatbot(input: ContextAwareChatbotInput): Prom
     return contextAwareChatbotFlow(input);
   } catch (error) {
     console.error('Error in contextAwareChatbot:', error);
+    if (error instanceof Error) {
+      console.error('Stack:', error.stack);
+    }
     // Return a fallback response
     return {
       response: "I apologize, but I'm having trouble processing your request right now. Please try again in a moment.",
@@ -197,6 +200,9 @@ const contextAwareChatbotFlow = ai.defineFlow(
       };
     } catch (error) {
       console.error('Error in contextAwareChatbotFlow:', error);
+      if (error instanceof Error) {
+        console.error('Flow Error Stack:', error.stack);
+      }
       return {
         response: "I apologize, but I'm having trouble processing your request right now. Please try again in a moment.",
         intent: 'GENERAL',
