@@ -116,6 +116,9 @@ export default function ChatPage() {
     }
   }, [messages, isLoading]);
 
+  // Trigger vercel redeploy
+
+
 
 
   const speakWithBrowser = (text: string, messageId: string) => {
